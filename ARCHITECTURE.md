@@ -1,6 +1,6 @@
 # La Machine Titi Studio — Architecture
 
-Application web Angular 20 pour gérer "La michie de Titi" (ESP32-C3, La Machine de Paul Guyot).
+Application web Angular 20 pour gérer "La Machititine" (ESP32-C3, La Machine de Paul Guyot).
 
 ## Deux projets liés
 
