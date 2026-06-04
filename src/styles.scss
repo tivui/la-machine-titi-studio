@@ -1,0 +1,110 @@
+@use '@angular/material' as mat;
+@import "tailwindcss";
+
+// ─── La Machine Design Tokens ───────────────────────────────────────────────
+// Extracted from the physical machine:
+//   Orange  (#F07800) → corps/boîte  → primary
+//   Noir    (#1C1C1C) → dessus/capot → surfaces
+//   Rouge   (#CC2200) → bouton sphère → accent/CTA
+
+@theme {
+  // Brand colors
+  --color-machine-orange:    #F07800;
+  --color-machine-orange-lt: #FF9D2E;
+  --color-machine-orange-dk: #C05A00;
+  --color-machine-red:       #CC2200;
+  --color-machine-red-lt:    #E8341A;
+  --color-machine-red-dk:    #991A00;
+  --color-machine-black:     #1C1C1C;
+  --color-machine-grey:      #2E2E2E;
+  --color-machine-grey-lt:   #3F3F3F;
+
+  // Semantic
+  --color-surface:           #1C1C1C;
+  --color-surface-raised:    #2E2E2E;
+  --color-surface-overlay:   #3F3F3F;
+  --color-on-surface:        #FFFFFF;
+  --color-on-surface-muted:  #AAAAAA;
+  --color-primary:           #F07800;
+  --color-on-primary:        #1C1C1C;
+  --color-accent:            #CC2200;
+  --color-on-accent:         #FFFFFF;
+
+  // Font
+  --font-sans: 'Roboto', 'Helvetica Neue', sans-serif;
+
+  // Border radius
+  --radius-machine: 8px;
+}
+
+// ─── Angular Material M3 Theme ───────────────────────────────────────────────
+html {
+  @include mat.theme((
+    color: (
+      primary:   mat.$orange-palette,
+      tertiary:  mat.$red-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+
+  // Override M3 CSS vars with La Machine palette
+  --mat-sys-primary:              #F07800;
+  --mat-sys-on-primary:           #1C1C1C;
+  --mat-sys-primary-container:    #FF9D2E;
+  --mat-sys-secondary:            #CC2200;
+  --mat-sys-on-secondary:         #FFFFFF;
+  --mat-sys-surface:              #1C1C1C;
+  --mat-sys-surface-container:    #2E2E2E;
+  --mat-sys-on-surface:           #FFFFFF;
+  --mat-sys-outline:              #3F3F3F;
+  --mat-sys-background:           #141414;
+  --mat-sys-on-background:        #FFFFFF;
+}
+
+// ─── Global Reset & Base ─────────────────────────────────────────────────────
+html, body {
+  height: 100%;
+  margin: 0;
+  background-color: #141414;
+  color: #FFFFFF;
+  color-scheme: dark;
+  font-family: var(--font-sans);
+}
+
+// ─── Scrollbar ───────────────────────────────────────────────────────────────
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1C1C1C; }
+::-webkit-scrollbar-thumb { background: #F07800; border-radius: 3px; }
+
+// ─── Utility classes (complement Tailwind) ───────────────────────────────────
+.btn-primary {
+  background: #F07800;
+  color: #1C1C1C;
+  font-weight: 700;
+  border-radius: var(--radius-machine);
+  padding: 0.5rem 1.25rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: #FF9D2E; }
+}
+
+.btn-accent {
+  background: #CC2200;
+  color: #FFFFFF;
+  font-weight: 700;
+  border-radius: var(--radius-machine);
+  padding: 0.5rem 1.25rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  &:hover { background: #E8341A; }
+}
+
+.card-machine {
+  background: #2E2E2E;
+  border: 1px solid #3F3F3F;
+  border-radius: var(--radius-machine);
+  padding: 1rem;
+}

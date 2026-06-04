@@ -1,0 +1,61 @@
+.nav-toolbar {
+  background: #1C1C1C !important;
+  border-bottom: 2px solid #F07800;
+  height: 60px;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #F07800;
+  letter-spacing: 0.02em;
+}
+
+.machine-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+
+  .machine-body {
+    width: 28px;
+    height: 24px;
+    background: #F07800;
+    border-radius: 4px;
+    position: absolute;
+    bottom: 0;
+  }
+
+  .machine-button {
+    width: 10px;
+    height: 10px;
+    background: #CC2200;
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 6px #CC2200;
+  }
+}
+
+a[mat-button] {
+  color: #AAAAAA !important;
+  font-size: 0.85rem;
+
+  mat-icon { font-size: 18px; height: 18px; width: 18px; }
+
+  &.nav-active {
+    color: #F07800 !important;
+    background: rgba(240, 120, 0, 0.1) !important;
+    border-radius: 8px;
+  }
+
+  &:hover {
+    color: #FFFFFF !important;
+    background: rgba(255,255,255,0.05) !important;
+  }
+}
