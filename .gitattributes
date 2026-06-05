@@ -1,0 +1,12 @@
+# Normalisation des fins de ligne
+* text=auto eol=lf
+
+# Fichiers binaires — pas de conversion
+*.png binary
+*.jpg binary
+*.ico binary
+*.mp3 binary
+*.img binary
+
+# Scripts Windows
+*.ps1 text eol=crlf
