@@ -1,24 +1,44 @@
-<mat-toolbar class="nav-toolbar">
-  <div class="flex items-center gap-3">
+<aside class="nav-sidebar">
+
+  <!-- Logo -->
+  <div class="nav-logo">
     <div class="machine-icon">
       <div class="machine-body"></div>
       <div class="machine-button"></div>
     </div>
-    <span class="nav-title">La Machititine</span>
+    <div class="nav-logo-text">
+      <span class="nav-brand">La Machititine</span>
+      <span class="nav-app">Studio</span>
+    </div>
   </div>
-  <span class="flex-1"></span>
-  <nav class="flex gap-1">
-    <a mat-button routerLink="/library" routerLinkActive="nav-active">
+
+  <!-- Liens -->
+  <nav class="nav-links">
+    <a class="nav-link" routerLink="/library" routerLinkActive="nav-link--active">
       <mat-icon>library_music</mat-icon>
-      Bibliothèque
+      <span>Bibliothèque</span>
     </a>
-    <a mat-button routerLink="/flash" routerLinkActive="nav-active">
-      <mat-icon>flash_on</mat-icon>
-      Flash
+    <a class="nav-link" routerLink="/flash" routerLinkActive="nav-link--active">
+      <mat-icon>bolt</mat-icon>
+      <span>Flash</span>
     </a>
-    <a mat-button routerLink="/editor" routerLinkActive="nav-active">
+    <a class="nav-link" routerLink="/editor" routerLinkActive="nav-link--active">
       <mat-icon>tune</mat-icon>
-      Éditeur
+      <span>Éditeur</span>
     </a>
   </nav>
-</mat-toolbar>
+
+  <!-- Footer -->
+  <div class="nav-footer">
+    <div class="sandbox-status">
+      <span class="sandbox-dot"></span>
+      <span class="sandbox-label">Sandbox actif</span>
+    </div>
+    <span class="nav-region">eu-west-3</span>
+
+    <button mat-icon-button class="logout-btn" (click)="logout()" matTooltip="Se déconnecter">
+      <mat-icon>logout</mat-icon>
+    </button>
+  </div>
+
+</aside>

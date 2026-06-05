@@ -40,3 +40,11 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Amplify Gen 2 — contient les IDs de ressources AWS, ne pas committer
+amplify_outputs.json
+.amplify/
+amplify/node_modules/
+
+# Mémoire Claude locale
+.claude/

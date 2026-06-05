@@ -1,110 +1,557 @@
 @use '@angular/material' as mat;
 @import "tailwindcss";
 
-// ─── La Machine Design Tokens ───────────────────────────────────────────────
-// Extracted from the physical machine:
-//   Orange  (#F07800) → corps/boîte  → primary
-//   Noir    (#1C1C1C) → dessus/capot → surfaces
-//   Rouge   (#CC2200) → bouton sphère → accent/CTA
+// ═══════════════════════════════════════════════════════════════════════════════
+// LA MACHINE STUDIO — DESIGN SYSTEM
+// Police : Inter (Google Fonts) — lisibilité optimale, WCAG-friendly
+// ═══════════════════════════════════════════════════════════════════════════════
 
 @theme {
-  // Brand colors
-  --color-machine-orange:    #F07800;
-  --color-machine-orange-lt: #FF9D2E;
-  --color-machine-orange-dk: #C05A00;
-  --color-machine-red:       #CC2200;
-  --color-machine-red-lt:    #E8341A;
-  --color-machine-red-dk:    #991A00;
-  --color-machine-black:     #1C1C1C;
-  --color-machine-grey:      #2E2E2E;
-  --color-machine-grey-lt:   #3F3F3F;
-
-  // Semantic
-  --color-surface:           #1C1C1C;
-  --color-surface-raised:    #2E2E2E;
-  --color-surface-overlay:   #3F3F3F;
-  --color-on-surface:        #FFFFFF;
-  --color-on-surface-muted:  #AAAAAA;
-  --color-primary:           #F07800;
-  --color-on-primary:        #1C1C1C;
-  --color-accent:            #CC2200;
-  --color-on-accent:         #FFFFFF;
-
-  // Font
-  --font-sans: 'Roboto', 'Helvetica Neue', sans-serif;
-
-  // Border radius
-  --radius-machine: 8px;
+  --font-sans: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  --font-mono: 'Roboto Mono', 'Courier New', monospace;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
-// ─── Angular Material M3 Theme ───────────────────────────────────────────────
+// ─── Design System Variables ──────────────────────────────────────────────────
+// Règle de lisibilité thème sombre : les textes vont du CLAIR vers le fond sombre.
+// Les valeurs comme #444 sont invisibles sur fond sombre — toujours partir de #6E+ pour du texte.
+// Référence WCAG AA : ≥4.5:1 texte normal, ≥3:1 texte grand/gras.
+:root {
+  // ── Surfaces ──────────────────────────────────
+  --bg-base:    #08090A;   // fond page
+  --bg-sidebar: #0D0E10;   // sidebar
+  --bg-card:    #131417;   // cartes
+  --bg-raised:  #1A1C20;   // cartes raised / hover
+  --bg-input:   #1F2228;   // inputs, dropdowns
+
+  // ── Texte (WCAG AA ✓ sur --bg-card) ───────────
+  --tx-1: #F0F0F0;    // titres, primaire            ratio ≈ 22:1
+  --tx-2: #A0A0A0;    // descriptions, sous-titres   ratio ≈ 7.5:1
+  --tx-3: #686868;    // labels section (bold/caps)  ratio ≈ 3.8:1 — ok large bold
+  --tx-4: #3E3E3E;    // décoratif uniquement
+
+  // ── Couleurs accent ───────────────────────────
+  --orange:    #F07800;
+  --orange-lt: #FF9D2E;
+  --orange-dk: #C55E00;
+  --red:       #D42B00;
+  --red-lt:    #F03D18;
+  --green:     #22C55E;
+  --green-lt:  #4ADE80;
+
+  // ── Borders ───────────────────────────────────
+  --bd-faint:   rgba(255,255,255,0.04);
+  --bd-subtle:  rgba(255,255,255,0.07);
+  --bd-default: rgba(255,255,255,0.12);
+  --bd-orange:  rgba(240,120,0,0.28);
+  --bd-red:     rgba(212,43,0,0.36);
+
+  // ── Shadows ───────────────────────────────────
+  --sh-xs: 0 1px 3px rgba(0,0,0,0.55);
+  --sh-sm: 0 2px 8px rgba(0,0,0,0.6),  0 0 0 1px rgba(255,255,255,0.04);
+  --sh-md: 0 6px 20px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
+  --sh-lg: 0 12px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  --glow-orange: 0 0 32px rgba(240,120,0,0.12);
+  --glow-red:    0 0 32px rgba(212,43,0,0.14);
+}
+
+// ─── Angular Material M3 avec Inter ──────────────────────────────────────────
 html {
   @include mat.theme((
-    color: (
-      primary:   mat.$orange-palette,
-      tertiary:  mat.$red-palette,
-    ),
-    typography: Roboto,
+    color: (primary: mat.$orange-palette, tertiary: mat.$red-palette),
+    typography: Inter,
     density: 0,
   ));
-
-  // Override M3 CSS vars with La Machine palette
-  --mat-sys-primary:              #F07800;
-  --mat-sys-on-primary:           #1C1C1C;
-  --mat-sys-primary-container:    #FF9D2E;
-  --mat-sys-secondary:            #CC2200;
-  --mat-sys-on-secondary:         #FFFFFF;
-  --mat-sys-surface:              #1C1C1C;
-  --mat-sys-surface-container:    #2E2E2E;
-  --mat-sys-on-surface:           #FFFFFF;
-  --mat-sys-outline:              #3F3F3F;
-  --mat-sys-background:           #141414;
-  --mat-sys-on-background:        #FFFFFF;
+  --mat-sys-primary:           #F07800;
+  --mat-sys-on-primary:        #080A0A;
+  --mat-sys-primary-container: #FF9D2E;
+  --mat-sys-secondary:         #D42B00;
+  --mat-sys-on-secondary:      #FFFFFF;
+  --mat-sys-surface:           #131417;
+  --mat-sys-surface-container: #1A1C20;
+  --mat-sys-on-surface:        #F0F0F0;
+  --mat-sys-outline:           rgba(255,255,255,0.09);
+  --mat-sys-background:        #08090A;
+  --mat-sys-on-background:     #F0F0F0;
 }
 
-// ─── Global Reset & Base ─────────────────────────────────────────────────────
+// ─── Reset & Base ─────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; }
+
 html, body {
   height: 100%;
   margin: 0;
-  background-color: #141414;
-  color: #FFFFFF;
+  background: var(--bg-base);
+  color: var(--tx-1);
   color-scheme: dark;
-  font-family: var(--font-sans);
+  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  font-size: 14px;        // 14px base — confortable pour une app desktop
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv02","cv03","cv04","cv11";  // Inter optical features
 }
 
-// ─── Scrollbar ───────────────────────────────────────────────────────────────
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #1C1C1C; }
-::-webkit-scrollbar-thumb { background: #F07800; border-radius: 3px; }
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(240,120,0,0.3); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(240,120,0,0.5); }
 
-// ─── Utility classes (complement Tailwind) ───────────────────────────────────
-.btn-primary {
-  background: #F07800;
-  color: #1C1C1C;
+// ─── App Shell ────────────────────────────────────────────────────────────────
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  width: 100%;      // nécessaire quand parent est un flex centré (amplify-authenticator)
+}
+.app-main { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg-base); }
+
+// ─── Typographie ──────────────────────────────────────────────────────────────
+.page-title {
+  font-size: 1.5rem;
   font-weight: 700;
-  border-radius: var(--radius-machine);
-  padding: 0.5rem 1.25rem;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover { background: #FF9D2E; }
+  color: var(--tx-1);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0 0 0.25rem;
 }
 
-.btn-accent {
-  background: #CC2200;
-  color: #FFFFFF;
+.page-subtitle {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--tx-3);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+// section-label : all-caps + gras → WCAG autorise 3:1 pour "large bold text"
+// #686868 = ~3.8:1 sur bg-card → WCAG AA compliant pour ce type de label
+.section-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tx-3);
+  margin: 0 0 0.875rem;
+}
+
+// ─── Card Surfaces ────────────────────────────────────────────────────────────
+.card-surface {
+  background: var(--bg-card);
+  border: var(--bd-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-sm);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+
+  &:hover {
+    background: var(--bg-raised);
+    border-color: var(--bd-orange);
+    box-shadow: var(--sh-md), var(--glow-orange);
+  }
+}
+
+.card-surface--red {
+  background: var(--bg-card);
+  border: var(--bd-red);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--sh-sm), var(--glow-red);
+}
+
+// ─── Icon Avatar ──────────────────────────────────────────────────────────────
+.icon-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  mat-icon { font-size: 17px; height: 17px; width: 17px; }
+}
+
+.icon-avatar--orange {
+  background: rgba(240,120,0,0.1);
+  color: var(--orange);
+  border: var(--bd-orange);
+}
+
+.icon-avatar--red {
+  background: rgba(212,43,0,0.1);
+  color: var(--red-lt);
+  border: var(--bd-red);
+}
+
+// ─── Tags ─────────────────────────────────────────────────────────────────────
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  mat-icon, .tag-icon { font-size: 10px; height: 10px; width: 10px; }
+}
+
+.tag--system {
+  background: rgba(255,255,255,0.04);
+  color: var(--tx-3);
+  border: var(--bd-faint);
+}
+
+.tag--user {
+  background: rgba(240,120,0,0.1);
+  color: var(--orange-lt);
+  border: var(--bd-orange);
+}
+
+// ─── Sound List ───────────────────────────────────────────────────────────────
+.sound-list { display: flex; flex-direction: column; }
+
+.sound-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3125rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--tx-3);
+  transition: background 0.1s;
+
+  mat-icon, .sound-icon {
+    font-size: 13px;
+    height: 13px;
+    width: 13px;
+    flex-shrink: 0;
+    color: var(--tx-4);
+  }
+
+  .sound-name  { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sound-duration {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.6875rem;
+    color: var(--tx-3);
+    flex-shrink: 0;
+  }
+
+  &.sound-row--user {
+    color: var(--tx-2);
+    mat-icon, .sound-icon { color: var(--orange); }
+    .sound-duration { color: var(--tx-3); }
+  }
+
+  &:hover { background: rgba(255,255,255,0.025); }
+}
+
+// ─── State Cards ──────────────────────────────────────────────────────────────
+.state-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.875rem;
+  padding: 0.875rem 1.125rem;
+  border-radius: var(--radius-md);
+  .state-icon { font-size: 20px; height: 20px; width: 20px; flex-shrink: 0; margin-top: 1px; }
+  strong { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.15rem; }
+  p { margin: 0; font-size: 0.8rem; color: var(--tx-2); line-height: 1.5; }
+}
+
+.state-card--success {
+  background: rgba(34,197,94,0.07);
+  border: 1px solid rgba(34,197,94,0.2);
+  color: var(--green-lt);
+}
+.state-card--error {
+  background: rgba(212,43,0,0.07);
+  border: var(--bd-red);
+  color: var(--red-lt);
+}
+.state-card--warning {
+  background: rgba(240,120,0,0.07);
+  border: var(--bd-orange);
+  color: var(--orange-lt);
+}
+
+// ─── Checklist ────────────────────────────────────────────────────────────────
+.checklist { display: flex; flex-direction: column; gap: 0.375rem; }
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  background: var(--bg-card);
+  border: var(--bd-subtle);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--tx-2);
+  mat-icon, .check-icon {
+    color: var(--orange);
+    font-size: 17px;
+    height: 17px;
+    width: 17px;
+    flex-shrink: 0;
+  }
+}
+
+// ─── Divider ──────────────────────────────────────────────────────────────────
+.divider { border: none; border-top: var(--bd-faint); margin: 0; }
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 2rem;
+  border: 1px dashed rgba(255,255,255,0.06);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  mat-icon { font-size: 36px; height: 36px; width: 36px; color: var(--tx-4); }
+  p { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--tx-2); }
+  code {
+    color: var(--orange-lt);
+    background: rgba(240,120,0,0.08);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.8125rem;
+  }
+}
+
+// ─── Bouton danger ────────────────────────────────────────────────────────────
+.btn-danger {
+  background: var(--red) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  &:hover:not([disabled]) { background: var(--red-lt) !important; }
+}
+
+// ─── Amplify Authenticator — Design La Machine ───────────────────────────────
+// Polyfills requis : src/polyfills.ts (global + process — ajouté dans angular.json)
+
+// 1. Variables globales — cascade vers tous les tokens Amplify
+:root {
+  --amplify-fonts-default-variable: 'Inter', system-ui, sans-serif;
+  --amplify-fonts-default-static:   'Inter', system-ui, sans-serif;
+
+  // Orange La Machine comme couleur primaire
+  --amplify-colors-primary-10:  rgba(240,120,0,0.08);
+  --amplify-colors-primary-20:  rgba(240,120,0,0.15);
+  --amplify-colors-primary-40:  rgba(240,120,0,0.35);
+  --amplify-colors-primary-60:  rgba(240,120,0,0.55);
+  --amplify-colors-primary-80:  #D46A00;
+  --amplify-colors-primary-90:  #E07200;
+  --amplify-colors-primary-100: #F07800;
+
+  // Fonds (card = #232630 bien distinct de la page #08090A)
+  --amplify-colors-background-primary:   #232630;
+  --amplify-colors-background-secondary: #2C2F3D;
+  --amplify-colors-background-tertiary:  #353848;
+
+  // Texte
+  --amplify-colors-font-primary:     #EFEFEF;
+  --amplify-colors-font-secondary:   #A0A0A0;
+  --amplify-colors-font-tertiary:    #686868;
+  --amplify-colors-font-interactive: #F07800;
+  --amplify-colors-font-hover:       #FF9D2E;
+  --amplify-colors-font-focus:       #F07800;
+  --amplify-colors-font-inverse:     #080A0A;
+
+  // Bordures
+  --amplify-colors-border-primary:   rgba(255,255,255,0.16);
+  --amplify-colors-border-secondary: rgba(255,255,255,0.08);
+  --amplify-colors-border-focus:     #F07800;
+
+  // Radius
+  --amplify-radii-small:  6px;
+  --amplify-radii-medium: 8px;
+  --amplify-radii-large:  12px;
+
+  // Shadow
+  --amplify-shadows-medium: 0 20px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+// 2. Variables composant (sélecteur officiel)
+[data-amplify-authenticator] {
+  --amplify-components-authenticator-router-background-color:   #232630;
+  --amplify-components-authenticator-router-border-style:       solid;
+  --amplify-components-authenticator-router-border-width:       1px;
+  --amplify-components-authenticator-router-border-color:       rgba(255,255,255,0.12);
+  --amplify-components-authenticator-router-box-shadow:
+    0 20px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06);
+  --amplify-components-authenticator-state-inactive-background-color: #2C2F3D;
+  --amplify-components-button-primary-background-color:         #F07800;
+  --amplify-components-button-primary-color:                    #080A0A;
+  --amplify-components-button-primary-hover-background-color:   #FF9D2E;
+  --amplify-components-button-primary-focus-background-color:   #FF9D2E;
+  --amplify-components-fieldcontrol-color:                      #EFEFEF;
+  --amplify-components-fieldcontrol-border-color:               rgba(255,255,255,0.1);
+  --amplify-components-fieldcontrol-border-radius:              8px;
+  --amplify-components-fieldcontrol-focus-border-color:         #F07800;
+  --amplify-components-fieldcontrol-focus-box-shadow:           0 0 0 3px rgba(240,120,0,0.2);
+}
+
+// 3. Page d'auth — uniquement quand NON authentifié
+// :has(.app-shell) détecte que l'utilisateur est connecté → reset du layout centré
+amplify-authenticator {
+  display: block;
+  width: 100%;
+  // override la max-width de 60rem qu'Amplify impose par défaut
+  --amplify-components-authenticator-max-width: 100vw;
+}
+
+// État non-authentifié : centrer le formulaire
+amplify-authenticator:not(:has(.app-shell)) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #07080A;
+  background-image:
+    radial-gradient(ellipse 50% 40% at 25% 35%, rgba(240,120,0,0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 50% at 75% 65%, rgba(212,43,0,0.03) 0%, transparent 65%);
+}
+
+// État authentifié : reset complet — laisser app-shell prendre tout l'espace
+amplify-authenticator:has(.app-shell) {
+  background: none;
+  min-height: 0;
+}
+
+// 4. Sélecteurs directs — filet de sécurité si les variables ne cascadent pas
+// La card (fond #232630 sur page #07080A — contraste visible)
+[data-amplify-authenticator] [data-amplify-router] {
+  background-color: #232630 !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.85) !important;
+  overflow: hidden;
+}
+
+[data-amplify-authenticator] [data-state="inactive"] {
+  background-color: #2C2F3D !important;
+}
+
+.amplify-button[data-variation="primary"],
+.amplify-button--primary {
+  background-color: #F07800 !important;
+  color: #080A0A !important;
+  font-family: 'Inter', sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.01em !important;
+  &:hover { background-color: #FF9D2E !important; }
+}
+
+.amplify-tabs__tab {
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  color: #686868 !important;
+}
+.amplify-tabs__tab--active {
+  color: #F07800 !important;
+  border-color: #F07800 !important;
+}
+
+.amplify-input {
+  background-color: #2C2F3D !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  border-radius: 8px !important;
+  color: #EFEFEF !important;
+  font-family: 'Inter', sans-serif !important;
+  &::placeholder { color: rgba(255,255,255,0.25) !important; }
+  &:focus {
+    border-color: #F07800 !important;
+    box-shadow: 0 0 0 3px rgba(240,120,0,0.2) !important;
+    outline: none !important;
+  }
+}
+
+.amplify-label {
+  color: #A0A0A0 !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.8125rem !important;
+  font-weight: 500 !important;
+}
+
+.amplify-heading {
+  color: #EFEFEF !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 1.125rem !important;   // taille raisonnable — pas de h1 géant
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  line-height: 1.3 !important;
+}
+
+.amplify-button[data-variation="link"],
+.amplify-button--link {
+  color: #F07800 !important;
+  font-family: 'Inter', sans-serif !important;
+  &:hover { color: #FF9D2E !important; }
+}
+
+// ── En-tête custom : logo + titre ────────────────────────────────────────────
+.auth-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+}
+
+.auth-machine-icon {
+  position: relative;
+  width: 40px;
+  height: 40px;
+
+  .machine-body {
+    width: 40px;
+    height: 32px;
+    background: var(--orange);
+    border-radius: 6px;
+    position: absolute;
+    bottom: 0;
+    box-shadow: 0 4px 16px rgba(240,120,0,0.3);
+  }
+
+  .machine-button {
+    width: 14px;
+    height: 14px;
+    background: var(--red);
+    border-radius: 50%;
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 12px rgba(212,43,0,0.8);
+  }
+}
+
+.auth-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.375rem;
   font-weight: 700;
-  border-radius: var(--radius-machine);
-  padding: 0.5rem 1.25rem;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s;
-  &:hover { background: #E8341A; }
+  color: #F0F0F0;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0;
 }
 
-.card-machine {
-  background: #2E2E2E;
-  border: 1px solid #3F3F3F;
-  border-radius: var(--radius-machine);
-  padding: 1rem;
+.auth-subtitle {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--tx-3);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0;
 }

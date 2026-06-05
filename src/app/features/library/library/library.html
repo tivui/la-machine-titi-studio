@@ -1,1 +1,125 @@
-<p>library works!</p>
+<div class="library-page">
+
+  <!-- ── En-tête ── -->
+  <div class="library-header">
+    <div>
+      <h1 class="page-title">Bibliothèque</h1>
+      <p class="page-subtitle">{{ (customImages().length + (originalImage() ? 1 : 0)) }} images · {{ totalSounds() }} sons</p>
+    </div>
+    <button mat-stroked-button class="import-btn">
+      <mat-icon>add</mat-icon>
+      Importer
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">
+      <mat-spinner diameter="36" />
+    </div>
+  } @else {
+
+    <!-- ── Image officielle ── -->
+    @if (originalImage(); as orig) {
+      <section class="lib-section">
+        <span class="section-label">Image officielle</span>
+        <div class="orig-card card-surface--red">
+          <div class="orig-card-icon icon-avatar icon-avatar--red">
+            <mat-icon>verified</mat-icon>
+          </div>
+          <div class="orig-card-body">
+            <div class="orig-card-top">
+              <div>
+                <h3 class="orig-card-title">{{ orig.name }}</h3>
+                <span class="orig-card-date">{{ formatDate(orig.buildDate) }} · {{ formatSize(orig.sizeKb) }}</span>
+              </div>
+              <button mat-raised-button class="btn-danger restore-btn" (click)="restore()"
+                      matTooltip="Revenir au firmware d'origine de Paul Guyot">
+                <mat-icon>restore</mat-icon>
+                Restaurer l'original
+              </button>
+            </div>
+            <p class="orig-card-desc">{{ orig.description }}</p>
+            <div class="orig-card-tags">
+              @for (sound of orig.sounds; track sound.filename) {
+                <span class="tag tag--system">
+                  <mat-icon class="tag-icon">settings</mat-icon>
+                  {{ sound.name }}
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+      </section>
+    }
+
+    <!-- ── Mes images ── -->
+    <section class="lib-section">
+      <span class="section-label">Mes images</span>
+
+      @if (customImages().length === 0) {
+        <div class="empty-state">
+          <mat-icon>add_circle_outline</mat-icon>
+          <p>Aucune image personnalisée.<br>
+            Importez un fichier <code>.img</code> ou créez-en une depuis l'éditeur.</p>
+          <button mat-stroked-button>
+            <mat-icon>add</mat-icon>
+            Importer une image
+          </button>
+        </div>
+      } @else {
+        <div class="images-grid">
+          @for (img of customImages(); track img.id) {
+            <div class="img-card card-surface">
+
+              <!-- Header -->
+              <div class="img-card-header">
+                <div class="icon-avatar icon-avatar--orange">
+                  <mat-icon>developer_board</mat-icon>
+                </div>
+                <div class="img-card-info">
+                  <h3 class="img-card-title">{{ img.name }}</h3>
+                  <span class="img-card-date">{{ formatDate(img.buildDate) }}</span>
+                </div>
+                <span class="img-card-size">{{ formatSize(img.sizeKb) }}</span>
+              </div>
+
+              <hr class="divider" />
+
+              <!-- Description -->
+              <p class="img-card-desc">{{ img.description }}</p>
+
+              <!-- Sons -->
+              <div class="img-card-sounds">
+                <span class="section-label" style="margin-bottom:0.5rem">Sons inclus · {{ img.sounds.length }}</span>
+                <div class="sound-list">
+                  @for (sound of img.sounds; track sound.filename) {
+                    <div class="sound-row" [class.sound-row--user]="!sound.isSystem"
+                         [matTooltip]="sound.filename" matTooltipPosition="right">
+                      <mat-icon class="sound-icon">{{ sound.isSystem ? 'settings' : 'music_note' }}</mat-icon>
+                      <span class="sound-name">{{ sound.name }}</span>
+                      @if (sound.durationSec) {
+                        <span class="sound-duration">{{ sound.durationSec }}s</span>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <hr class="divider" />
+              <div class="img-card-actions">
+                <button mat-button class="details-btn">Détails</button>
+                <button mat-raised-button color="primary" (click)="flash(img)">
+                  <mat-icon>bolt</mat-icon>
+                  Flash
+                </button>
+              </div>
+
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+  }
+</div>

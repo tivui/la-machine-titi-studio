@@ -1,0 +1,188 @@
+.flash-page {
+  padding: 2.5rem 2.25rem;
+  max-width: 960px;
+}
+
+// ── En-tête ───────────────────────────────────────────────
+.flash-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  margin-bottom: 2rem;
+}
+
+.back-btn {
+  color: var(--tx-3) !important;
+  margin-top: 0.15rem;
+  &:hover { color: var(--tx-2) !important; }
+}
+
+.flash-section { margin-bottom: 1.875rem; }
+
+// ── Image sélectionnée ────────────────────────────────────
+.img-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.img-summary-body { flex: 1; min-width: 0; }
+
+.img-summary-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--tx-1);
+  margin: 0 0 0.2rem;
+  letter-spacing: -0.02em;
+}
+
+.img-summary-meta {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  color: var(--tx-3);
+  font-family: 'Roboto Mono', monospace;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.img-summary-sounds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+// ── Progression ───────────────────────────────────────────
+.progress-card {
+  padding: 1.25rem 1.375rem;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.75rem;
+}
+
+.progress-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--tx-2);
+}
+
+.progress-pct {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--orange);
+  font-family: 'Roboto Mono', monospace;
+}
+
+.flash-bar {
+  --mdc-linear-progress-active-indicator-color: var(--orange);
+  --mdc-linear-progress-track-color: rgba(255,255,255,0.05);
+  border-radius: 3px;
+  height: 4px;
+}
+
+.progress-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  color: var(--tx-3);
+  font-style: italic;
+}
+
+// ── Actions résultat ──────────────────────────────────────
+.result-actions {
+  display: flex;
+  gap: 0.625rem;
+  margin-top: 0.875rem;
+}
+
+// ── Layout ────────────────────────────────────────────────
+.flash-layout {
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  gap: 1.5rem;
+  align-items: start;
+
+  @media (max-width: 680px) { grid-template-columns: 1fr; }
+}
+
+// ── Panneau action (sticky) ───────────────────────────────
+.flash-action-col {
+  position: sticky;
+  top: 2rem;
+}
+
+.action-panel {
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.action-bolt-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(240,120,0,0.08);
+  border: var(--bd-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  mat-icon {
+    font-size: 26px;
+    height: 26px;
+    width: 26px;
+    color: var(--orange);
+  }
+}
+
+.action-desc {
+  font-size: 0.8125rem;
+  color: var(--tx-2);
+  margin: 0;
+  line-height: 1.55;
+}
+
+.flash-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--orange);
+  color: #080A0A;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 20px rgba(240,120,0,0.25);
+
+  mat-icon { font-size: 18px; height: 18px; width: 18px; }
+
+  &:hover:not([disabled]) {
+    background: var(--orange-lt);
+    box-shadow: 0 0 28px rgba(240,120,0,0.4);
+  }
+
+  &[disabled] {
+    background: rgba(255,255,255,0.06);
+    color: var(--tx-3);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+}
+
+.action-unsupported {
+  font-size: 0.75rem;
+  color: var(--red-lt);
+}

@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "seed": "tsx scripts/seed-library.ts"
   },
   "prettier": {
     "printWidth": 100,
@@ -22,6 +23,7 @@
   },
   "private": true,
   "dependencies": {
+    "@angular/animations": "^20.3.24",
     "@angular/cdk": "^20.2.14",
     "@angular/common": "^20.1.0",
     "@angular/compiler": "^20.1.0",
@@ -40,6 +42,7 @@
     "@angular/build": "^20.1.6",
     "@angular/cli": "^20.1.6",
     "@angular/compiler-cli": "^20.1.0",
+    "@aws-amplify/backend-cli": "^1.8.3",
     "@tailwindcss/typography": "^0.5.19",
     "@types/jasmine": "~5.1.0",
     "autoprefixer": "^10.5.0",
@@ -51,6 +54,7 @@
     "karma-jasmine-html-reporter": "~2.1.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^4.3.0",
+    "tsx": "^4.22.4",
     "typescript": "~5.8.2"
   }
 }

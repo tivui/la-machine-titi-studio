@@ -1,1 +1,163 @@
-<p>flash works!</p>
+<div class="flash-page">
+
+  <!-- ── En-tête ── -->
+  <div class="flash-header">
+    <button mat-icon-button class="back-btn" (click)="goToLibrary()" matTooltip="Bibliothèque">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div>
+      <h1 class="page-title">Flash firmware</h1>
+      <p class="page-subtitle">Web Serial API — Chrome / Edge requis</p>
+    </div>
+  </div>
+
+  <!-- ── Alerte navigateur ── -->
+  @if (!isWebSerialSupported) {
+    <div class="state-card state-card--warning" style="margin-bottom:1.5rem">
+      <mat-icon class="state-icon">warning_amber</mat-icon>
+      <div>
+        <strong>Navigateur non compatible</strong>
+        <p>Web Serial API requiert Chrome ou Edge. Firefox et Safari ne sont pas supportés.</p>
+      </div>
+    </div>
+  }
+
+  <div class="flash-layout">
+
+    <!-- ── Colonne principale ── -->
+    <div class="flash-main">
+
+      <!-- Image sélectionnée -->
+      <section class="flash-section">
+        <span class="section-label">Image à flasher</span>
+
+        @if (selectedImage(); as img) {
+          <div class="img-summary card-surface" [class.card-surface--red]="img.isOriginal">
+            <div class="icon-avatar" [class.icon-avatar--red]="img.isOriginal" [class.icon-avatar--orange]="!img.isOriginal">
+              <mat-icon>{{ img.isOriginal ? 'verified' : 'developer_board' }}</mat-icon>
+            </div>
+            <div class="img-summary-body">
+              <h3 class="img-summary-title">{{ img.name }}</h3>
+              <span class="img-summary-meta">{{ img.s3Key }} · {{ formatSize(img.sizeKb) }}</span>
+              <div class="img-summary-sounds">
+                @for (sound of img.sounds; track sound.filename) {
+                  <span class="tag" [class.tag--system]="sound.isSystem" [class.tag--user]="!sound.isSystem">
+                    <mat-icon class="tag-icon">{{ sound.isSystem ? 'settings' : 'music_note' }}</mat-icon>
+                    {{ sound.name }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="empty-state">
+            <mat-icon>info_outline</mat-icon>
+            <p>Aucune image sélectionnée.<br>Choisissez-en une depuis la bibliothèque.</p>
+            <button mat-stroked-button (click)="goToLibrary()">
+              <mat-icon>library_music</mat-icon>
+              Ouvrir la bibliothèque
+            </button>
+          </div>
+        }
+      </section>
+
+      <!-- Checklist -->
+      @if (state() === 'ready' && selectedImage()) {
+        <section class="flash-section">
+          <span class="section-label">Avant de flasher</span>
+          <div class="checklist">
+            <div class="check-item">
+              <mat-icon class="check-icon">usb</mat-icon>
+              La Machititine est branchée en USB
+            </div>
+            <div class="check-item">
+              <mat-icon class="check-icon">web</mat-icon>
+              Vous utilisez Chrome ou Edge
+            </div>
+            <div class="check-item">
+              <mat-icon class="check-icon">sports_esports</mat-icon>
+              Le bouton rouge sphère est accessible (mode flash)
+            </div>
+          </div>
+        </section>
+      }
+
+      <!-- Progression -->
+      @if (state() === 'connecting' || state() === 'flashing') {
+        <section class="flash-section">
+          <span class="section-label">Progression</span>
+          <div class="progress-card card-surface">
+            <div class="progress-header">
+              <span class="progress-label">{{ statusMessage() }}</span>
+              <span class="progress-pct">{{ progress() }}%</span>
+            </div>
+            <mat-progress-bar mode="determinate" [value]="progress()" class="flash-bar" />
+            <p class="progress-hint">Ne débranchez pas La Machititine pendant le flash.</p>
+          </div>
+        </section>
+      }
+
+      <!-- Succès -->
+      @if (state() === 'success') {
+        <section class="flash-section">
+          <div class="state-card state-card--success">
+            <mat-icon class="state-icon">check_circle</mat-icon>
+            <div>
+              <strong>Flash réussi !</strong>
+              <p>La Machititine redémarre avec le nouveau firmware.</p>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button mat-button (click)="reset()"><mat-icon>refresh</mat-icon> Flasher à nouveau</button>
+            <button mat-raised-button color="primary" (click)="goToLibrary()">
+              <mat-icon>library_music</mat-icon> Bibliothèque
+            </button>
+          </div>
+        </section>
+      }
+
+      <!-- Erreur -->
+      @if (state() === 'error') {
+        <section class="flash-section">
+          <div class="state-card state-card--error">
+            <mat-icon class="state-icon">error_outline</mat-icon>
+            <div>
+              <strong>Erreur de flash</strong>
+              <p>{{ errorMessage() }}</p>
+            </div>
+          </div>
+          <div class="result-actions">
+            <button mat-raised-button class="btn-danger" (click)="reset()">
+              <mat-icon>refresh</mat-icon> Réessayer
+            </button>
+          </div>
+        </section>
+      }
+
+    </div>
+
+    <!-- ── Bouton Flash (sticky) ── -->
+    @if (state() === 'ready') {
+      <div class="flash-action-col">
+        <div class="action-panel card-surface">
+          <div class="action-bolt-icon">
+            <mat-icon>bolt</mat-icon>
+          </div>
+          <p class="action-desc">
+            Sélectionne le port USB de La Machititine et lance l'écriture du firmware.
+          </p>
+          <button class="flash-btn"
+                  [disabled]="!isWebSerialSupported || !selectedImage()"
+                  (click)="connectAndFlash()">
+            <mat-icon>bolt</mat-icon>
+            Connecter et flasher
+          </button>
+          @if (!isWebSerialSupported) {
+            <span class="action-unsupported">Chrome ou Edge requis</span>
+          }
+        </div>
+      </div>
+    }
+
+  </div>
+</div>

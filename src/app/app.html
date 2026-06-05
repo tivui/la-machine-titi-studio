@@ -1,4 +1,25 @@
-<app-nav />
-<main class="flex-1 overflow-auto">
-  <router-outlet />
-</main>
+<amplify-authenticator [hideSignUp]="false">
+
+  <!-- Logo + titre au-dessus du formulaire -->
+  <ng-template amplifySlot="header">
+    <div class="auth-header">
+      <div class="auth-machine-icon">
+        <div class="machine-body"></div>
+        <div class="machine-button"></div>
+      </div>
+      <p class="auth-title">La Machititine</p>
+      <p class="auth-subtitle">Studio</p>
+    </div>
+  </ng-template>
+
+  <!-- App principale une fois connecté -->
+  <ng-template amplifySlot="authenticated" let-signOut="signOut">
+    <div class="app-shell">
+      <app-nav [signOut]="signOut" />
+      <main class="app-main">
+        <router-outlet />
+      </main>
+    </div>
+  </ng-template>
+
+</amplify-authenticator>
