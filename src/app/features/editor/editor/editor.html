@@ -1,1 +1,412 @@
-<p>editor works!</p>
+<div class="editor-page">
+
+  <!-- Inputs fichiers cachés -->
+  <input #mp3LocalInput type="file" accept=".mp3,audio/mpeg" class="hidden-input" (change)="onMp3LocalSelected($event)" />
+  <input #soundUpload   type="file" accept=".mp3,audio/mpeg" class="hidden-input" (change)="onSoundUpload($event)" />
+
+  <!-- ── En-tête ─────────────────────────────────────────────────────────── -->
+  <div class="editor-page-header">
+    <div>
+      <h1 class="page-title">Éditeur</h1>
+      <p class="page-subtitle">Chorégraphies servo · bibliothèque par thèmes</p>
+    </div>
+    <div class="header-actions">
+      <button mat-raised-button color="primary"
+              (click)="newChoreography()"
+              [disabled]="!selectedThemeId()">
+        <mat-icon>add</mat-icon>
+        Nouvelle
+      </button>
+    </div>
+  </div>
+
+  <div class="editor-body">
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Sidebar
+    ══════════════════════════════════════════════════════════════════════ -->
+    <aside class="editor-sidebar card-surface">
+
+      <!-- ── Sélecteur de thème ─────────────────────────────────────────── -->
+      <div class="theme-header">
+        <span class="section-label" style="margin-bottom:0">Thème</span>
+        <button mat-icon-button class="new-theme-btn"
+                (click)="showNewThemeForm.set(!showNewThemeForm())"
+                [matTooltip]="showNewThemeForm() ? 'Annuler' : 'Nouveau thème'">
+          <mat-icon>{{ showNewThemeForm() ? 'close' : 'create_new_folder' }}</mat-icon>
+        </button>
+      </div>
+
+      @if (themes().length === 0) {
+        <div class="sidebar-empty" style="padding: 0.75rem 0;">
+          <mat-spinner diameter="18"></mat-spinner>
+        </div>
+      } @else {
+        <mat-select
+          class="theme-select"
+          [value]="selectedThemeId()"
+          (selectionChange)="onThemeChange($event.value)"
+          placeholder="Sélectionner un thème…">
+          @for (t of themes(); track t.id) {
+            <mat-option [value]="t.id">{{ t.emoji }} {{ t.name }}</mat-option>
+          }
+        </mat-select>
+      }
+
+      <!-- Formulaire nouveau thème -->
+      @if (showNewThemeForm()) {
+        <div class="new-theme-form">
+          <input #newThemeName class="theme-name-input"
+                 placeholder="Nom du thème"
+                 (keydown.enter)="submitNewTheme(newThemeName, newThemeEmoji)"
+                 autofocus />
+          <div class="new-theme-row">
+            <input #newThemeEmoji class="theme-emoji-input"
+                   placeholder="🎵" value="🎵" maxlength="2" />
+            <button mat-flat-button color="primary" class="create-theme-btn"
+                    (click)="submitNewTheme(newThemeName, newThemeEmoji)">
+              Créer
+            </button>
+          </div>
+        </div>
+      }
+
+      <hr class="divider" style="margin: 0.875rem 0 0.625rem;" />
+
+      <!-- ── Liste des chorégraphies ──────────────────────────────────────── -->
+      <div class="choreo-list-header">
+        <span class="section-label" style="margin-bottom:0">Chorégraphies</span>
+        <button mat-icon-button class="new-choreo-inline-btn"
+                (click)="newChoreography()"
+                [disabled]="!selectedThemeId()"
+                matTooltip="Nouvelle chorégraphie">
+          <mat-icon>add</mat-icon>
+        </button>
+      </div>
+
+      @if (choreos().length === 0) {
+        <div class="sidebar-empty">
+          <mat-icon>queue_music</mat-icon>
+          <p>Aucune chorégraphie<br>dans ce thème</p>
+        </div>
+      }
+
+      <div class="choreo-list">
+        @for (c of choreos(); track c.id) {
+          <button
+            class="choreo-item"
+            [class.choreo-item--active]="current()?.id === c.id"
+            (click)="selectChoreography(c.id)">
+            <mat-icon class="choreo-icon">queue_music</mat-icon>
+            <span class="choreo-name">{{ c.name }}</span>
+            @if (c.servoPoints.length > 0) {
+              <span class="choreo-badge">{{ c.servoPoints.length }}</span>
+            }
+          </button>
+        }
+      </div>
+
+      <!-- La Machine — aperçu servo -->
+      <hr class="divider" style="margin: 1.25rem 0 1rem;" />
+      <span class="section-label">Aperçu servo</span>
+
+      <div class="machine-wrap">
+        <div class="machine-preview">
+          <div class="machine-btn"
+               [class.machine-btn--pressed]="liveServoPos() >= 85">
+          </div>
+          <div class="machine-body">
+            <div class="machine-arm"
+                 [style.transform]="'translateX(-50%) translateY(' + (-liveServoPos() * 0.22) + 'px)'">
+            </div>
+          </div>
+        </div>
+
+        <div class="machine-meta">
+          <span class="machine-pos mono">{{ servoDisplay() }}%</span>
+          @if (playing()) {
+            <span class="machine-playing">
+              <mat-icon>play_arrow</mat-icon>
+              lecture
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Raccourcis clavier -->
+      <hr class="divider" style="margin: 1.25rem 0 1rem;" />
+      <div class="shortcuts">
+        <div class="shortcut-row">
+          <kbd>Espace</kbd>
+          <span>Lecture / Stop</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>⌫ Del</kbd>
+          <span>Supprimer point</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-click">clic</span>
+          <span>Ajouter un point</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-click">drag</span>
+          <span>Déplacer un point</span>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Panneau principal
+    ══════════════════════════════════════════════════════════════════════ -->
+    <main class="editor-main">
+
+      @if (!current()) {
+        <div class="no-selection">
+          <div class="empty-state">
+            <mat-icon>queue_music</mat-icon>
+            <p>
+              Sélectionnez ou créez une chorégraphie<br>
+              dans le panneau de gauche pour commencer.
+            </p>
+            <button mat-raised-button color="primary"
+                    (click)="newChoreography()"
+                    [disabled]="!selectedThemeId()">
+              <mat-icon>add</mat-icon>
+              Nouvelle chorégraphie
+            </button>
+          </div>
+        </div>
+
+      } @else {
+
+        <!-- ── Barre d'outils ──────────────────────────────────────────── -->
+        <div class="editor-toolbar">
+          <input
+            class="name-input"
+            type="text"
+            [value]="current()!.name"
+            (change)="updateName($event)"
+            placeholder="Nom de la chorégraphie"
+            spellcheck="false" />
+
+          <div class="toolbar-actions">
+            <button
+              mat-icon-button
+              class="play-btn"
+              [class.play-btn--active]="playing()"
+              (click)="togglePlay()"
+              [matTooltip]="playing() ? 'Stop (Espace)' : 'Lecture (Espace)'">
+              <mat-icon>{{ playing() ? 'stop' : 'play_arrow' }}</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              class="del-choreo-btn"
+              (click)="deleteChoreography()"
+              matTooltip="Supprimer cette chorégraphie">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Sélecteur de son ───────────────────────────────────────── -->
+        <div class="sound-bar card-surface">
+          <div class="icon-avatar icon-avatar--orange">
+            <mat-icon>music_note</mat-icon>
+          </div>
+          <span class="sound-bar-label">Son</span>
+
+          @if (availableSounds().length === 0) {
+            <span class="sound-bar-empty">Aucun son dans la bibliothèque</span>
+          } @else {
+            <mat-select
+              class="sound-select"
+              [value]="current()!.mp3File || null"
+              (selectionChange)="updateSound($event.value)"
+              placeholder="Choisir un son…">
+              <mat-option [value]="null">— Aucun son —</mat-option>
+              @for (s of availableSounds(); track s.filename) {
+                <mat-option [value]="s.filename">{{ s.name }}</mat-option>
+              }
+            </mat-select>
+          }
+
+          <div class="sound-bar-sep"></div>
+
+          @if (loadingAudio()) {
+            <span class="audio-loading">
+              <mat-spinner diameter="16"></mat-spinner>
+              Chargement…
+            </span>
+          } @else if (audioReady()) {
+            @if (audioChannels() > 1) {
+              <span class="audio-stereo">
+                <mat-icon>warning</mat-icon>
+                Stéréo
+              </span>
+              <button mat-flat-button class="convert-btn"
+                      (click)="convertToMono()"
+                      [disabled]="uploading()"
+                      matTooltip="Convertit en MP3 mono 44.1 kHz via OfflineAudioContext">
+                @if (uploading()) {
+                  <mat-spinner diameter="14"></mat-spinner>
+                } @else {
+                  <mat-icon>merge_type</mat-icon>
+                }
+                Convertir en mono
+              </button>
+            } @else {
+              <span class="audio-ready">
+                <mat-icon>check_circle</mat-icon>
+                Mono ✓
+              </span>
+            }
+          } @else {
+            <button mat-stroked-button class="audio-local-btn"
+                    (click)="triggerMp3Local()"
+                    matTooltip="Charger le fichier MP3 local pour afficher la forme d'onde et activer la lecture">
+              <mat-icon>headphones</mat-icon>
+              Charger audio
+            </button>
+          }
+
+          @if (!uploading()) {
+            <button mat-icon-button class="upload-btn"
+                    (click)="triggerSoundUpload()"
+                    matTooltip="Importer un son mono dans la bibliothèque S3">
+              <mat-icon>cloud_upload</mat-icon>
+            </button>
+          }
+        </div>
+
+        <!-- ── Timeline (canvas) ─────────────────────────────────────── -->
+        <div class="timeline-wrap card-surface">
+
+          <div class="timeline-legend">
+            <span class="legend-item legend-item--audio">
+              <mat-icon>music_note</mat-icon>
+              Son
+            </span>
+            <span class="legend-item legend-item--servo">
+              <mat-icon>tune</mat-icon>
+              Servo
+            </span>
+            <span class="legend-sep"></span>
+            <span class="legend-item legend-item--door">— trappe 15%</span>
+            <span class="legend-item legend-item--btn">— contact 85%</span>
+          </div>
+
+          <canvas
+            #timeline
+            class="timeline-canvas"
+            (mousedown)="onCanvasMouseDown($event)"
+            (mousemove)="onCanvasMouseMove($event)"
+            (mouseup)="onCanvasMouseUp()"
+            (mouseleave)="onCanvasMouseUp()">
+          </canvas>
+
+          @if (current()!.servoPoints.length === 0 && !playing()) {
+            <div class="canvas-hint">
+              <mat-icon>mouse</mat-icon>
+              Cliquez dans la zone servo pour ajouter des points
+            </div>
+          }
+        </div>
+
+        <!-- ── Panneau détail du point sélectionné ────────────────────── -->
+        @if (selectedPoint(); as sp) {
+          <div class="detail-panel card-surface">
+
+            <div class="detail-header">
+              <div class="icon-avatar icon-avatar--orange">
+                <mat-icon>tune</mat-icon>
+              </div>
+              <div class="detail-title-group">
+                <strong class="detail-title">Point servo</strong>
+                <span class="detail-sub mono">t&nbsp;=&nbsp;{{ sp.timeMs }}&nbsp;ms</span>
+              </div>
+              <button mat-icon-button class="detail-close" (click)="selectedPointId.set(null)"
+                      matTooltip="Fermer">
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+
+            <div class="detail-fields">
+
+              <div class="detail-field">
+                <span class="field-label">Position</span>
+                <mat-slider min="0" max="100" step="1" discrete class="pos-slider">
+                  <input
+                    matSliderThumb
+                    [value]="sp.position"
+                    (valueChange)="updateSelectedPosition($event)" />
+                </mat-slider>
+                <span class="field-val mono">{{ sp.position }}%</span>
+              </div>
+
+              <div class="detail-field">
+                <span class="field-label">Durée</span>
+                <input
+                  type="number"
+                  class="dur-input mono"
+                  [value]="sp.durationMs"
+                  min="0"
+                  max="9999"
+                  placeholder="0"
+                  (change)="updateSelectedDuration($event)" />
+                <span class="field-unit">ms</span>
+                <span class="dur-hint">(0&nbsp;=&nbsp;instantané)</span>
+              </div>
+
+            </div>
+
+            <button mat-stroked-button class="del-point-btn" (click)="deleteSelectedPoint()">
+              <mat-icon>delete</mat-icon>
+              Supprimer ce point
+            </button>
+
+          </div>
+        }
+
+        <!-- ── Fin de scénario (verrouillée) ─────────────────────────── -->
+        <div class="end-sequence">
+          <div class="end-seq-icon">
+            <mat-icon>lock</mat-icon>
+          </div>
+          <div class="end-seq-content">
+            <span class="end-seq-title">Fin de scénario · toujours exportée</span>
+            <div class="end-seq-steps">
+              <span class="end-step">&#123;servo,&nbsp;100&#125;</span>
+              <mat-icon class="end-arrow">arrow_forward</mat-icon>
+              <span class="end-step">&#123;wait,&nbsp;300&#125;</span>
+              <mat-icon class="end-arrow">arrow_forward</mat-icon>
+              <span class="end-step">&#123;servo,&nbsp;0,&nbsp;1500&#125;</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Aperçu Erlang + export ─────────────────────────────────── -->
+        @if (erlangPreview()) {
+          <div class="erlang-section">
+            <div class="erlang-header">
+              <span class="section-label" style="margin:0">Aperçu Erlang</span>
+              <span class="erlang-count mono">{{ current()!.servoPoints.length }} points · {{ current()!.mp3File ? 'son inclus' : 'sans son' }}</span>
+            </div>
+            <pre class="erlang-code">{{ erlangPreview() }}</pre>
+            <div class="erlang-actions">
+              <button mat-stroked-button (click)="copyErlang()">
+                <mat-icon>content_copy</mat-icon>
+                Copier Erlang
+              </button>
+              <button mat-raised-button color="primary" (click)="exportJson()">
+                <mat-icon>download</mat-icon>
+                Exporter .json
+              </button>
+            </div>
+          </div>
+        }
+
+      }
+    </main>
+  </div>
+</div>

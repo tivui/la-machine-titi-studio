@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { generateClient } from 'aws-amplify/data';
+import { uploadData } from 'aws-amplify/storage';
 import { ImageTheme, Sound } from '../models/image-theme';
 
 // Client Cognito userPool — tokens auto-rafraîchis, aucune expiration à gérer.
@@ -30,8 +31,8 @@ const MOCK_IMAGES: ImageTheme[] = [
     sounds: [
       { name: 'batterylow',               filename: '_system/batterylow.mp3',  isSystem: true },
       { name: 'welcome',                   filename: '_system/welcome.mp3',     isSystem: true },
-      { name: 'joy_01 · Champions League', filename: 'champions_league.mp3',   isSystem: false, durationSec: 19.4 },
-      { name: 'joy_02 · Allez Paris',      filename: 'allez_paris.mp3',        isSystem: false, durationSec: 22.26 },
+      { name: 'joy_01 · Champions League', filename: 'personal/champions-league.mp3', isSystem: false, durationSec: 19.4  },
+      { name: 'joy_02 · Allez Paris',      filename: 'personal/allezparis.mp3',      isSystem: false, durationSec: 22.26 },
     ],
     s3Key: 'images/la_machititine_v1.img',
     isOriginal: false,
@@ -96,10 +97,7 @@ export class LibraryService {
       });
 
       if (mapped.length === 0) {
-        console.warn(
-          '[LibraryService] DynamoDB vide — utilisation du mock.\n' +
-          '  → Lancez: npm run seed'
-        );
+        console.info('[LibraryService] DynamoDB vide — mock actif (npm run seed pour peupler)');
         this._images.set(MOCK_IMAGES);
         this._source.set('mock');
       } else {
@@ -114,6 +112,81 @@ export class LibraryService {
       this._source.set('mock');
     } finally {
       this._loading.set(false);
+    }
+  }
+
+  // ── Import d'un son MP3 ─────────────────────────────────────────────────────
+  // Valide mono, upload S3, crée le record DynamoDB (ou met à jour le mock).
+
+  async importSound(file: File): Promise<{ success: boolean; error?: string; durationSec?: number }> {
+    // 1. Valider mono via WebAudio
+    const audioCtx = new AudioContext();
+    let channels = 1, durationSec = 0;
+    try {
+      const decoded = await audioCtx.decodeAudioData(await file.arrayBuffer());
+      channels    = decoded.numberOfChannels;
+      durationSec = decoded.duration;
+    } catch {
+      return { success: false, error: 'Fichier MP3 invalide ou corrompu.' };
+    } finally {
+      await audioCtx.close();
+    }
+
+    if (channels !== 1) {
+      return {
+        success: false,
+        error: `Fichier stéréo (${channels} canaux). Convertissez en mono :\nffmpeg -i input.mp3 -ac 1 output.mp3`,
+      };
+    }
+
+    const filename = `personal/${file.name}`;
+    const soundName = file.name.replace(/\.mp3$/i, '').replace(/[-_]/g, ' ');
+
+    // 2. Upload S3
+    try {
+      await uploadData({
+        path: `sounds/${filename}`,
+        data: file,
+        options: { contentType: 'audio/mpeg' },
+      }).result;
+    } catch (e) {
+      if (this._source() !== 'mock') {
+        return { success: false, error: `Erreur S3 : ${e instanceof Error ? e.message : String(e)}` };
+      }
+      console.warn('[LibraryService] S3 indisponible, ajout en mock uniquement');
+    }
+
+    const newSound: Sound = { name: soundName, filename, isSystem: false, durationSec };
+
+    // 3a. Mode mock : ajoute directement dans le state
+    if (this._source() === 'mock') {
+      this._images.update(imgs => {
+        const idx = imgs.findIndex(i => !i.isOriginal);
+        if (idx < 0) return imgs;
+        return imgs.map((img, i) => i === idx ? { ...img, sounds: [...img.sounds, newSound] } : img);
+      });
+      return { success: true, durationSec };
+    }
+
+    // 3b. Mode AppSync : créer le record DynamoDB
+    const targetImage = this._images().find(i => !i.isOriginal);
+    if (!targetImage) {
+      return { success: false, error: 'Aucune image personnalisée. Créez-en une d\'abord.' };
+    }
+
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (client as any).models.Sound.create({
+        imageThemeId: targetImage.id,
+        name:         soundName,
+        filename,
+        isSystem:     false,
+        durationSec,
+      });
+      await this.reload();
+      return { success: true, durationSec };
+    } catch (e: unknown) {
+      return { success: false, error: e instanceof Error ? e.message : String(e) };
     }
   }
 }

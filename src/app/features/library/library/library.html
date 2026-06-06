@@ -1,15 +1,34 @@
 <div class="library-page">
 
+  <!-- Input caché pour l'import de son -->
+  <input #soundImportInput type="file" accept=".mp3,audio/mpeg"
+         style="display:none" (change)="onSoundImport($event)" />
+
   <!-- ── En-tête ── -->
   <div class="library-header">
     <div>
       <h1 class="page-title">Bibliothèque</h1>
       <p class="page-subtitle">{{ (customImages().length + (originalImage() ? 1 : 0)) }} images · {{ totalSounds() }} sons</p>
     </div>
-    <button mat-stroked-button class="import-btn">
-      <mat-icon>add</mat-icon>
-      Importer
-    </button>
+    <div class="library-header-actions">
+      <!-- Recharger depuis AppSync (utile après npm run seed) -->
+      <button mat-icon-button (click)="reload()"
+              [disabled]="loading()"
+              matTooltip="Recharger depuis DynamoDB (après npm run seed)">
+        <mat-icon>refresh</mat-icon>
+      </button>
+
+      @if (importing()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        <button mat-stroked-button class="import-btn"
+                (click)="triggerSoundImport()"
+                matTooltip="Importer un fichier MP3 mono 44.1 kHz dans la bibliothèque">
+          <mat-icon>audio_file</mat-icon>
+          Importer un son
+        </button>
+      }
+    </div>
   </div>
 
   @if (loading()) {
@@ -60,11 +79,7 @@
         <div class="empty-state">
           <mat-icon>add_circle_outline</mat-icon>
           <p>Aucune image personnalisée.<br>
-            Importez un fichier <code>.img</code> ou créez-en une depuis l'éditeur.</p>
-          <button mat-stroked-button>
-            <mat-icon>add</mat-icon>
-            Importer une image
-          </button>
+            Créez des chorégraphies depuis l'éditeur puis buildez une image.</p>
         </div>
       } @else {
         <div class="images-grid">
@@ -90,7 +105,9 @@
 
               <!-- Sons -->
               <div class="img-card-sounds">
-                <span class="section-label" style="margin-bottom:0.5rem">Sons inclus · {{ img.sounds.length }}</span>
+                <div class="sounds-header">
+                  <span class="section-label" style="margin-bottom:0">Sons inclus · {{ img.sounds.length }}</span>
+                </div>
                 <div class="sound-list">
                   @for (sound of img.sounds; track sound.filename) {
                     <div class="sound-row" [class.sound-row--user]="!sound.isSystem"

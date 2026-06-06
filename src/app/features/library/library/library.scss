@@ -12,6 +12,12 @@
   gap: 1rem;
 }
 
+.library-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .import-btn {
   color: var(--tx-3) !important;
   border-color: var(--bd-subtle) !important;
@@ -21,10 +27,17 @@
   letter-spacing: -0.01em;
 
   &:hover {
-    color: var(--tx-2) !important;
-    border-color: var(--bd-default) !important;
-    background: rgba(255,255,255,0.03) !important;
+    color: var(--orange) !important;
+    border-color: var(--bd-orange) !important;
+    background: rgba(240,120,0,0.05) !important;
   }
+}
+
+.sounds-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
 }
 
 .lib-section { margin-bottom: 2.5rem; }
