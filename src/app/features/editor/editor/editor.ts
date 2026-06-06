@@ -25,10 +25,12 @@ import { ChoreographyService } from '../services/choreography.service';
 import { Choreography, ServoPoint } from '../models/choreography.model';
 
 // ── Constantes canvas (CSS pixels) ────────────────────────────────────────────
-const RULER_H  = 28;
-const AUDIO_H  = 52;
-const SERVO_H  = 200;
-export const CANVAS_H = RULER_H + AUDIO_H + SERVO_H; // 280px
+const RULER_H   = 28;
+const AUDIO_H   = 52;
+const SERVO_H   = 200;
+const SERVO_PAD = 8;  // extra canvas height so pY(0) circles don't hit bottom edge
+const LEFT_PAD  = 6;  // left offset so tX(0) circles don't hit left canvas boundary
+export const CANVAS_H = RULER_H + AUDIO_H + SERVO_H + SERVO_PAD; // 288px (8px floor under pos=0)
 
 const DOOR_PCT = 15;
 const BTN_PCT  = 85;
@@ -135,7 +137,8 @@ export class Editor implements AfterViewInit, OnDestroy {
   private dragOriginPos     = 0;
   private rafId             = 0;
   private playStart         = 0;
-  private saveTimerId: ReturnType<typeof setTimeout> | null = null;
+  private saveTimerId:    ReturnType<typeof setTimeout> | null = null;
+  private resizeObserver: ResizeObserver | null = null;
 
   constructor() {
     // Auto-sélectionner un thème quand le service charge
@@ -162,6 +165,7 @@ export class Editor implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     cancelAnimationFrame(this.rafId);
     if (this.saveTimerId) clearTimeout(this.saveTimerId);
+    this.resizeObserver?.disconnect();
     this.audioLoadAbort?.abort();
     if (this.audioObjectUrl?.startsWith('blob:')) URL.revokeObjectURL(this.audioObjectUrl);
     this.audioEl?.pause();
@@ -579,6 +583,13 @@ export class Editor implements AfterViewInit, OnDestroy {
   private drawCanvas(): void {
     const canvas = this.canvasRef?.nativeElement;
     if (!canvas) return;
+
+    if (!this.resizeObserver) {
+      this.resizeObserver = new ResizeObserver(() =>
+        requestAnimationFrame(() => this.drawCanvas())
+      );
+      this.resizeObserver.observe(canvas);
+    }
     const dpr = window.devicePixelRatio || 1;
     const cssW = canvas.clientWidth;
     if (cssW === 0) return;
@@ -590,7 +601,7 @@ export class Editor implements AfterViewInit, OnDestroy {
 
     const c  = this.current();
     const vd = this.viewDuration();
-    const tX = (ms: number) => ms / vd * cssW;
+    const tX = (ms: number) => LEFT_PAD + ms / vd * (cssW - LEFT_PAD);
     const pY = (pos: number) => RULER_H + AUDIO_H + SERVO_H - (pos / 100 * SERVO_H);
 
     this.drawRuler(ctx, cssW, vd, tX);
@@ -602,8 +613,8 @@ export class Editor implements AfterViewInit, OnDestroy {
   }
 
   private drawRuler(ctx: CanvasRenderingContext2D, W: number, vd: number, tX: (ms: number) => number): void {
-    ctx.fillStyle = 'rgba(255,255,255,0.025)'; ctx.fillRect(0, 0, W, RULER_H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 1;
+    ctx.fillStyle = 'rgba(0,0,0,0.04)'; ctx.fillRect(0, 0, W, RULER_H);
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, RULER_H); ctx.lineTo(W, RULER_H); ctx.stroke();
 
     const minor = vd <= 8000 ? 500 : vd <= 20000 ? 1000 : 2000;
@@ -612,19 +623,24 @@ export class Editor implements AfterViewInit, OnDestroy {
 
     for (let ms = 0; ms <= vd; ms += minor) {
       const x = tX(ms), big = ms % major === 0;
-      ctx.strokeStyle = big ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.09)'; ctx.lineWidth = 1;
+      ctx.strokeStyle = big ? 'rgba(0,0,0,0.30)' : 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, RULER_H - (big ? 9 : 4)); ctx.lineTo(x, RULER_H); ctx.stroke();
       if (big) {
-        ctx.fillStyle = 'rgba(255,255,255,0.3)';
-        ctx.fillText(ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`, x, RULER_H - 12);
+        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        if (ms === 0) {
+          ctx.textAlign = 'left';
+          ctx.fillText('0ms', 4, RULER_H - 12);
+          ctx.textAlign = 'center';
+        } else {
+          ctx.fillText(ms >= 1000 ? `${ms / 1000}s` : `${ms}ms`, x, RULER_H - 12);
+        }
       }
     }
   }
 
   private drawAudioTrack(ctx: CanvasRenderingContext2D, c: Choreography | null, W: number, tX: (ms: number) => number): void {
     const y0 = RULER_H;
-    ctx.fillStyle = 'rgba(255,255,255,0.015)'; ctx.fillRect(0, y0, W, AUDIO_H);
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, y0 + AUDIO_H); ctx.lineTo(W, y0 + AUDIO_H); ctx.stroke();
 
     const displayName = c?.mp3File || this.localMp3Name();
@@ -632,7 +648,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     const waveform    = this.waveformData();
 
     if (!displayName && !waveform) {
-      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.font = '11px "Inter", sans-serif'; ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.font = '11px "Inter", sans-serif'; ctx.textAlign = 'center';
       ctx.fillText('Aucun son — chargez un fichier MP3 ou choisissez dans la bibliothèque', W / 2, y0 + AUDIO_H / 2 + 4);
       return;
     }
@@ -642,15 +658,15 @@ export class Editor implements AfterViewInit, OnDestroy {
     const midY = y0 + AUDIO_H / 2;
 
     const grad = ctx.createLinearGradient(0, 0, barW, 0);
-    grad.addColorStop(0,   'rgba(240,120,0,0.28)');
-    grad.addColorStop(0.6, 'rgba(240,120,0,0.14)');
-    grad.addColorStop(1,   'rgba(240,120,0,0.03)');
+    grad.addColorStop(0,   'rgba(185,115,0,0.18)');
+    grad.addColorStop(0.6, 'rgba(185,115,0,0.09)');
+    grad.addColorStop(1,   'rgba(185,115,0,0.02)');
     ctx.fillStyle = grad; ctx.fillRect(0, barY, barW, barH);
-    ctx.strokeStyle = 'rgba(240,120,0,0.28)'; ctx.lineWidth = 1; ctx.strokeRect(0, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(185,115,0,0.22)'; ctx.lineWidth = 1; ctx.strokeRect(0, barY, barW, barH);
 
     if (waveform && waveform.length > 0) {
       const maxAmp = (barH / 2) * 0.88;
-      ctx.strokeStyle = 'rgba(240,120,0,0.7)';
+      ctx.strokeStyle = 'rgba(160,95,0,0.65)';
       ctx.lineWidth   = 1;
       ctx.beginPath();
       for (let i = 0; i < waveform.length; i++) {
@@ -663,46 +679,46 @@ export class Editor implements AfterViewInit, OnDestroy {
     }
 
     const isStereo = this.audioChannels() > 1;
-    ctx.fillStyle  = isStereo ? 'rgba(212,43,0,0.9)' : 'rgba(240,120,0,0.9)';
+    ctx.fillStyle  = isStereo ? 'rgba(180,40,0,0.85)' : 'rgba(130,80,0,0.85)';
     ctx.font       = '11px "Inter", sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(`♪  ${displayName}${isStereo ? '  ⚠ stéréo' : ''}`, 10, y0 + 16);
 
     if (durationMs) {
-      ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font = '10px "Roboto Mono", monospace'; ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.font = '10px "Roboto Mono", monospace'; ctx.textAlign = 'right';
       ctx.fillText(`${(durationMs / 1000).toFixed(2)}s`, Math.min(barW, W) - 8, y0 + 16);
     }
   }
 
   private drawServoBackground(ctx: CanvasRenderingContext2D, W: number, pY: (pos: number) => number): void {
     const y0 = RULER_H + AUDIO_H;
-    ctx.fillStyle = '#0A0B0D'; ctx.fillRect(0, y0, W, SERVO_H);
+    ctx.fillStyle = 'rgba(0,0,0,0.025)'; ctx.fillRect(0, y0, W, SERVO_H);
 
     [25, 50, 75].forEach(p => {
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.setLineDash([]); ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.setLineDash([]); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(0, pY(p)); ctx.lineTo(W, pY(p)); ctx.stroke();
     });
 
-    ctx.strokeStyle = 'rgba(240,120,0,0.18)'; ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(185,115,0,0.35)'; ctx.setLineDash([5, 5]);
     ctx.beginPath(); ctx.moveTo(0, pY(DOOR_PCT)); ctx.lineTo(W, pY(DOOR_PCT)); ctx.stroke();
 
-    ctx.strokeStyle = 'rgba(212,43,0,0.35)';
+    ctx.strokeStyle = 'rgba(180,40,0,0.35)';
     ctx.beginPath(); ctx.moveTo(0, pY(BTN_PCT)); ctx.lineTo(W, pY(BTN_PCT)); ctx.stroke();
     ctx.setLineDash([]);
 
     ctx.textAlign = 'left'; ctx.font = '9px "Roboto Mono", monospace';
-    [0, 25, 50, 75, 100].forEach(p => { ctx.fillStyle = 'rgba(255,255,255,0.13)'; ctx.fillText(`${p}`, 4, pY(p) - 3); });
-    ctx.fillStyle = 'rgba(240,120,0,0.45)'; ctx.fillText('trappe', W - 52, pY(DOOR_PCT) - 3);
-    ctx.fillStyle = 'rgba(212,43,0,0.65)'; ctx.fillText('contact', W - 58, pY(BTN_PCT) - 3);
+    [0, 25, 50, 75, 100].forEach(p => { ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillText(`${p}`, 4, pY(p) - 3); });
+    ctx.fillStyle = 'rgba(160,95,0,0.65)'; ctx.fillText('trappe', W - 52, pY(DOOR_PCT) - 3);
+    ctx.fillStyle = 'rgba(160,40,0,0.70)'; ctx.fillText('contact', W - 58, pY(BTN_PCT) - 3);
   }
 
   private drawServoPath(ctx: CanvasRenderingContext2D, c: Choreography, tX: (ms: number) => number, pY: (pos: number) => number): void {
     const sorted = [...c.servoPoints].sort((a, b) => a.timeMs - b.timeMs);
-    ctx.strokeStyle = 'rgba(240,120,0,0.45)'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.beginPath();
+    ctx.strokeStyle = 'rgba(170,100,0,0.55)'; ctx.lineWidth = 1.5; ctx.setLineDash([]); ctx.beginPath();
 
     let prevPos = 0;
     sorted.forEach((sp, i) => {
       const sx = tX(sp.timeMs), ex = tX(sp.timeMs + sp.durationMs);
-      if (i === 0) { ctx.moveTo(0, pY(0)); ctx.lineTo(sx, pY(prevPos)); }
+      if (i === 0) { ctx.moveTo(tX(0), pY(0)); ctx.lineTo(sx, pY(prevPos)); }
       else ctx.lineTo(sx, pY(prevPos));
       ctx.lineTo(ex, pY(sp.position)); prevPos = sp.position;
     });
@@ -715,23 +731,23 @@ export class Editor implements AfterViewInit, OnDestroy {
       const x = tX(sp.timeMs), y = pY(sp.position), sel = sp.id === selId;
       if (sp.durationMs > 0) {
         const ex = tX(sp.timeMs + sp.durationMs);
-        ctx.strokeStyle = sel ? 'rgba(240,120,0,0.65)' : 'rgba(240,120,0,0.25)'; ctx.lineWidth = 2;
+        ctx.strokeStyle = sel ? 'rgba(185,115,0,0.70)' : 'rgba(185,115,0,0.30)'; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(ex, y); ctx.stroke();
-        ctx.fillStyle = sel ? '#F07800' : 'rgba(240,120,0,0.45)';
+        ctx.fillStyle = sel ? '#C88000' : 'rgba(185,115,0,0.45)';
         ctx.beginPath(); ctx.arc(ex, y, 4, 0, Math.PI * 2); ctx.fill();
       }
       const r = sel ? 8 : 6;
-      if (sel) { ctx.shadowColor = '#F07800'; ctx.shadowBlur = 14; }
-      ctx.fillStyle   = sel ? '#F07800' : 'rgba(240,120,0,0.8)';
-      ctx.strokeStyle = sel ? '#FFFFFF' : 'rgba(240,120,0,0.5)';
+      if (sel) { ctx.shadowColor = 'rgba(185,115,0,0.5)'; ctx.shadowBlur = 10; }
+      ctx.fillStyle   = sel ? '#C88000' : 'rgba(185,115,0,0.85)';
+      ctx.strokeStyle = sel ? '#7A5200' : 'rgba(185,115,0,0.45)';
       ctx.lineWidth = sel ? 1.5 : 1;
       ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0;
       if (sel) {
-        ctx.strokeStyle = 'rgba(240,120,0,0.3)'; ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(185,115,0,0.25)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = 'bold 11px "Roboto Mono", monospace'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#120F0A'; ctx.font = 'bold 11px "Roboto Mono", monospace'; ctx.textAlign = 'center';
         ctx.fillText(`${sp.position}%`, x, y - 17);
-        ctx.fillStyle = 'rgba(240,120,0,0.65)'; ctx.font = '9px "Roboto Mono", monospace';
+        ctx.fillStyle = 'rgba(130,80,0,0.75)'; ctx.font = '9px "Roboto Mono", monospace';
         ctx.fillText(`${sp.timeMs}ms`, x, y + 20);
       }
     }
@@ -745,26 +761,26 @@ export class Editor implements AfterViewInit, OnDestroy {
     const x = tX(t);
 
     if (isPlaying) {
-      ctx.strokeStyle = '#FF5555'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.globalAlpha = 0.9;
+      ctx.strokeStyle = '#C42000'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]); ctx.globalAlpha = 0.9;
     } else {
-      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.globalAlpha = 0.8;
+      ctx.strokeStyle = 'rgba(0,0,0,0.40)'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]); ctx.globalAlpha = 0.8;
     }
 
     ctx.beginPath(); ctx.moveTo(x, RULER_H); ctx.lineTo(x, CANVAS_H); ctx.stroke();
     ctx.setLineDash([]); ctx.globalAlpha = 1;
 
     const hw = isPlaying ? 6 : 5;
-    ctx.fillStyle = isPlaying ? '#FF5555' : 'rgba(255,255,255,0.75)';
+    ctx.fillStyle = isPlaying ? '#C42000' : 'rgba(0,0,0,0.50)';
     ctx.beginPath(); ctx.moveTo(x - hw, RULER_H - 1); ctx.lineTo(x + hw, RULER_H - 1);
     ctx.lineTo(x, RULER_H + 8); ctx.closePath(); ctx.fill();
 
-    ctx.strokeStyle = isPlaying ? 'rgba(255,85,85,0.6)' : 'rgba(255,255,255,0.3)';
+    ctx.strokeStyle = isPlaying ? 'rgba(196,32,0,0.5)' : 'rgba(0,0,0,0.20)';
     ctx.lineWidth = 1; ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, RULER_H - 1); ctx.stroke();
 
     const label = t >= 1000 ? `${(t / 1000).toFixed(2)}s` : `${t}ms`;
     ctx.font      = '9px "Roboto Mono", monospace';
-    ctx.fillStyle = isPlaying ? 'rgba(255,100,100,0.9)' : 'rgba(255,255,255,0.6)';
+    ctx.fillStyle = isPlaying ? 'rgba(196,32,0,0.90)' : 'rgba(0,0,0,0.40)';
     ctx.textAlign = x > 40 ? 'right' : 'left';
     ctx.fillText(label, x > 40 ? x - 8 : x + 8, RULER_H - 3);
   }

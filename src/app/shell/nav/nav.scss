@@ -31,10 +31,11 @@
   .machine-body {
     width: 26px;
     height: 21px;
-    background: var(--orange);
-    border-radius: 4px;
+    background: var(--yellow);
+    border-radius: 6px;
     position: absolute;
     bottom: 0;
+    box-shadow: 0 2px 8px rgba(250,185,0,0.3);
   }
 
   .machine-button {
@@ -46,7 +47,7 @@
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 0 8px rgba(212,43,0,0.8);
+    box-shadow: 0 0 6px rgba(196,32,0,0.5);
   }
 }
 
@@ -58,22 +59,25 @@
 }
 
 .nav-brand {
-  font-size: 0.875rem;
+  font-family: 'Instrument Sans', 'Inter', sans-serif;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--orange);
-  letter-spacing: -0.01em;
+  color: var(--tx-1);
+  letter-spacing: -0.04em;
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: lowercase;
 }
 
 .nav-app {
-  font-size: 0.5625rem;
-  font-weight: 600;
+  font-size: 0.5rem;
+  font-weight: 500;
   color: var(--tx-4);
-  letter-spacing: 0.2em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
 }
 
 // ── Navigation ────────────────────────────────────────────
@@ -108,16 +112,18 @@
   }
 
   &:hover {
-    background: rgba(255,255,255,0.04);
-    color: var(--tx-2);  // #A0A0A0 — 7.5:1 ratio ✓
+    background: rgba(0,0,0,0.05);
+    color: var(--tx-1);
     mat-icon { color: var(--tx-2); }
   }
 
   &.nav-link--active {
-    background: rgba(240,120,0,0.1);
-    color: var(--orange-lt);   // #FF9D2E — très lisible sur fond sombre
-    border-color: var(--bd-orange);
-    mat-icon { color: var(--orange-lt); }
+    background: var(--yellow);
+    color: #120F0A;
+    border-color: transparent;
+    font-weight: 600;
+    box-shadow: 0 1px 6px rgba(250,185,0,0.35);
+    mat-icon { color: #120F0A; }
   }
 }
 

@@ -2,79 +2,95 @@
 @import "tailwindcss";
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LA MACHINE STUDIO — DESIGN SYSTEM
-// Police : Inter (Google Fonts) — lisibilité optimale, WCAG-friendly
+// LA MACHINE STUDIO — DESIGN SYSTEM · Light mode
+// Inspiré du site la-machine.fr : crème chaud + jaune #FAB900 + noir chaud
 // ═══════════════════════════════════════════════════════════════════════════════
 
 @theme {
-  --font-sans: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  --font-sans: 'Instrument Sans', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'Roboto Mono', 'Courier New', monospace;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 9999px;
 }
 
 // ─── Design System Variables ──────────────────────────────────────────────────
-// Règle de lisibilité thème sombre : les textes vont du CLAIR vers le fond sombre.
-// Les valeurs comme #444 sont invisibles sur fond sombre — toujours partir de #6E+ pour du texte.
-// Référence WCAG AA : ≥4.5:1 texte normal, ≥3:1 texte grand/gras.
 :root {
+  // ── Border radius — défini ici ET dans @theme pour garantir la résolution CSS ──
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 9999px;
+
   // ── Surfaces ──────────────────────────────────
-  --bg-base:    #08090A;   // fond page
-  --bg-sidebar: #0D0E10;   // sidebar
-  --bg-card:    #131417;   // cartes
-  --bg-raised:  #1A1C20;   // cartes raised / hover
-  --bg-input:   #1F2228;   // inputs, dropdowns
+  --bg-base:    #F7F3EB;   // fond page — crème chaud (la-machine.fr)
+  --bg-sidebar: #FFFFFF;   // sidebar blanche
+  --bg-card:    #FFFFFF;   // cartes — toujours blanc pur pour la hiérarchie
+  --bg-raised:  #F5F2EC;   // hover / raised state
+  --bg-input:   #F7F3EB;   // inputs
 
-  // ── Texte (WCAG AA ✓ sur --bg-card) ───────────
-  --tx-1: #F0F0F0;    // titres, primaire            ratio ≈ 22:1
-  --tx-2: #A0A0A0;    // descriptions, sous-titres   ratio ≈ 7.5:1
-  --tx-3: #686868;    // labels section (bold/caps)  ratio ≈ 3.8:1 — ok large bold
-  --tx-4: #3E3E3E;    // décoratif uniquement
+  // ── Texte ─────────────────────────────────────
+  --tx-1: #120F0A;    // titres — quasi-noir chaud  (17:1 sur crème)
+  --tx-2: #4A3D2E;    // corps de texte             (9.5:1 sur crème)
+  --tx-3: #5C4E3C;    // labels, tertiaire          (7.0:1 sur blanc) ← WCAG AA ✓
+  --tx-4: #C0B4A0;    // décoratif uniquement — JAMAIS pour du texte lisible
 
-  // ── Couleurs accent ───────────────────────────
-  --orange:    #F07800;
-  --orange-lt: #FF9D2E;
-  --orange-dk: #C55E00;
-  --red:       #D42B00;
-  --red-lt:    #F03D18;
-  --green:     #22C55E;
-  --green-lt:  #4ADE80;
+  // ── Couleurs accent : jaune La Machine ────────
+  // Règle : #FAB900 = fond uniquement. Texte accentué = --yellow-dk (#7A5200, 6.9:1)
+  --yellow:    #FAB900;
+  --yellow-lt: #FFC830;
+  --yellow-dk: #7A5200;    // ambre foncé — WCAG AA ✓ (6.9:1 sur blanc)
+
+  // Alias orange → yellow (rétro-compat composants existants)
+  --orange:    #FAB900;
+  --orange-lt: #FFC830;
+  --orange-dk: #7A5200;
+
+  --red:       #C42000;
+  --red-lt:    #E03018;
+  --green:     #157A3A;
+  --green-lt:  #1FAD52;
 
   // ── Borders ───────────────────────────────────
-  --bd-faint:   rgba(255,255,255,0.04);
-  --bd-subtle:  rgba(255,255,255,0.07);
-  --bd-default: rgba(255,255,255,0.12);
-  --bd-orange:  rgba(240,120,0,0.28);
-  --bd-red:     rgba(212,43,0,0.36);
+  --bd-faint:   1px solid rgba(0,0,0,0.07);
+  --bd-subtle:  1px solid rgba(0,0,0,0.11);
+  --bd-default: 1px solid rgba(0,0,0,0.16);
+  --bd-orange:  1px solid rgba(250,185,0,0.4);
+  --bd-red:     1px solid rgba(196,32,0,0.25);
 
   // ── Shadows ───────────────────────────────────
-  --sh-xs: 0 1px 3px rgba(0,0,0,0.55);
-  --sh-sm: 0 2px 8px rgba(0,0,0,0.6),  0 0 0 1px rgba(255,255,255,0.04);
-  --sh-md: 0 6px 20px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
-  --sh-lg: 0 12px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
-  --glow-orange: 0 0 32px rgba(240,120,0,0.12);
-  --glow-red:    0 0 32px rgba(212,43,0,0.14);
+  --sh-xs: 0 1px 4px rgba(0,0,0,0.08);
+  --sh-sm: 0 2px 10px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
+  --sh-md: 0 4px 20px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.07);
+  --sh-lg: 0 8px 36px rgba(0,0,0,0.16), 0 0 0 1px rgba(0,0,0,0.07);
+  --glow-orange: 0 0 24px rgba(250,185,0,0.18);
+  --glow-red:    0 0 20px rgba(196,32,0,0.10);
+
+  // ── Canvas timeline — plan de travail blanc (contraste avec le chrome gris de l'éditeur) ──
+  --canvas-bg: #FFFFFF;
 }
 
-// ─── Angular Material M3 avec Inter ──────────────────────────────────────────
+// ─── Angular Material M3 — thème clair jaune ─────────────────────────────────
 html {
   @include mat.theme((
     color: (primary: mat.$orange-palette, tertiary: mat.$red-palette),
-    typography: Inter,
+    typography: 'Instrument Sans',
     density: 0,
   ));
-  --mat-sys-primary:           #F07800;
-  --mat-sys-on-primary:        #080A0A;
-  --mat-sys-primary-container: #FF9D2E;
-  --mat-sys-secondary:         #D42B00;
+  color-scheme: light;
+
+  --mat-sys-primary:           #FAB900;
+  --mat-sys-on-primary:        #120F0A;
+  --mat-sys-primary-container: #FFC830;
+  --mat-sys-secondary:         #C42000;
   --mat-sys-on-secondary:      #FFFFFF;
-  --mat-sys-surface:           #131417;
-  --mat-sys-surface-container: #1A1C20;
-  --mat-sys-on-surface:        #F0F0F0;
-  --mat-sys-outline:           rgba(255,255,255,0.09);
-  --mat-sys-background:        #08090A;
-  --mat-sys-on-background:     #F0F0F0;
+  --mat-sys-surface:           #FFFFFF;
+  --mat-sys-surface-container: #F7F3EB;
+  --mat-sys-on-surface:        #120F0A;
+  --mat-sys-outline:           rgba(0,0,0,0.14);
+  --mat-sys-background:        #F7F3EB;
+  --mat-sys-on-background:     #120F0A;
 }
 
 // ─── Reset & Base ─────────────────────────────────────────────────────────────
@@ -85,26 +101,26 @@ html, body {
   margin: 0;
   background: var(--bg-base);
   color: var(--tx-1);
-  color-scheme: dark;
-  font-family: 'Inter', 'Helvetica Neue', system-ui, sans-serif;
-  font-size: 14px;        // 14px base — confortable pour une app desktop
+  color-scheme: light;
+  font-family: 'Instrument Sans', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "cv02","cv03","cv04","cv11";  // Inter optical features
+  font-feature-settings: "kern","liga";
 }
 
 ::-webkit-scrollbar       { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(240,120,0,0.3); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(240,120,0,0.5); }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.14); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.24); }
 
 // ─── App Shell ────────────────────────────────────────────────────────────────
 .app-shell {
   display: flex;
   height: 100vh;
   overflow: hidden;
-  width: 100%;      // nécessaire quand parent est un flex centré (amplify-authenticator)
+  width: 100%;
 }
 .app-main { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg-base); }
 
@@ -113,9 +129,10 @@ html, body {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--tx-1);
-  letter-spacing: -0.03em;
-  line-height: 1.15;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
   margin: 0 0 0.25rem;
+  font-family: 'Instrument Sans', 'Inter', sans-serif;
 }
 
 .page-subtitle {
@@ -126,8 +143,6 @@ html, body {
   letter-spacing: 0.01em;
 }
 
-// section-label : all-caps + gras → WCAG autorise 3:1 pour "large bold text"
-// #686868 = ~3.8:1 sur bg-card → WCAG AA compliant pour ce type de label
 .section-label {
   display: block;
   font-size: 0.6875rem;
@@ -144,11 +159,10 @@ html, body {
   border: var(--bd-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--sh-sm);
-  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition: box-shadow 0.18s ease, border-color 0.18s ease;
 
   &:hover {
-    background: var(--bg-raised);
-    border-color: var(--bd-orange);
+    border-color: rgba(250,185,0,0.45);
     box-shadow: var(--sh-md), var(--glow-orange);
   }
 }
@@ -173,13 +187,13 @@ html, body {
 }
 
 .icon-avatar--orange {
-  background: rgba(240,120,0,0.1);
-  color: var(--orange);
+  background: rgba(250,185,0,0.12);
+  color: var(--yellow-dk);
   border: var(--bd-orange);
 }
 
 .icon-avatar--red {
-  background: rgba(212,43,0,0.1);
+  background: rgba(196,32,0,0.08);
   color: var(--red-lt);
   border: var(--bd-red);
 }
@@ -200,14 +214,14 @@ html, body {
 }
 
 .tag--system {
-  background: rgba(255,255,255,0.04);
+  background: rgba(0,0,0,0.04);
   color: var(--tx-3);
-  border: var(--bd-faint);
+  border: var(--bd-subtle);
 }
 
 .tag--user {
-  background: rgba(240,120,0,0.1);
-  color: var(--orange-lt);
+  background: rgba(250,185,0,0.12);
+  color: var(--yellow-dk);
   border: var(--bd-orange);
 }
 
@@ -243,11 +257,11 @@ html, body {
 
   &.sound-row--user {
     color: var(--tx-2);
-    mat-icon, .sound-icon { color: var(--orange); }
+    mat-icon, .sound-icon { color: var(--yellow-dk); }
     .sound-duration { color: var(--tx-3); }
   }
 
-  &:hover { background: rgba(255,255,255,0.025); }
+  &:hover { background: rgba(0,0,0,0.04); }
 }
 
 // ─── State Cards ──────────────────────────────────────────────────────────────
@@ -263,19 +277,19 @@ html, body {
 }
 
 .state-card--success {
-  background: rgba(34,197,94,0.07);
-  border: 1px solid rgba(34,197,94,0.2);
-  color: var(--green-lt);
+  background: rgba(21,122,58,0.06);
+  border: 1px solid rgba(21,122,58,0.2);
+  color: var(--green);
 }
 .state-card--error {
-  background: rgba(212,43,0,0.07);
+  background: rgba(196,32,0,0.06);
   border: var(--bd-red);
   color: var(--red-lt);
 }
 .state-card--warning {
-  background: rgba(240,120,0,0.07);
+  background: rgba(250,185,0,0.08);
   border: var(--bd-orange);
-  color: var(--orange-lt);
+  color: var(--yellow-dk);
 }
 
 // ─── Checklist ────────────────────────────────────────────────────────────────
@@ -293,7 +307,7 @@ html, body {
   font-weight: 400;
   color: var(--tx-2);
   mat-icon, .check-icon {
-    color: var(--orange);
+    color: var(--yellow-dk);
     font-size: 17px;
     height: 17px;
     width: 17px;
@@ -302,7 +316,7 @@ html, body {
 }
 
 // ─── Divider ──────────────────────────────────────────────────────────────────
-.divider { border: none; border-top: var(--bd-faint); margin: 0; }
+.divider { border: none; border-top: 1px solid rgba(0,0,0,0.07); margin: 0; }
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 .empty-state {
@@ -311,14 +325,16 @@ html, body {
   align-items: center;
   gap: 0.75rem;
   padding: 2.5rem 2rem;
-  border: 1px dashed rgba(255,255,255,0.06);
+  background: var(--bg-card);
+  border: 1px dashed rgba(0,0,0,0.12);
   border-radius: var(--radius-lg);
+  box-shadow: var(--sh-sm);
   text-align: center;
   mat-icon { font-size: 36px; height: 36px; width: 36px; color: var(--tx-4); }
   p { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--tx-2); }
   code {
-    color: var(--orange-lt);
-    background: rgba(240,120,0,0.08);
+    color: var(--yellow-dk);
+    background: rgba(250,185,0,0.1);
     padding: 1px 5px;
     border-radius: 3px;
     font-family: 'Roboto Mono', monospace;
@@ -334,171 +350,154 @@ html, body {
   &:hover:not([disabled]) { background: var(--red-lt) !important; }
 }
 
-// ─── Amplify Authenticator — Design La Machine ───────────────────────────────
-// Polyfills requis : src/polyfills.ts (global + process — ajouté dans angular.json)
+// ─── Amplify Authenticator — Design La Machine (light) ───────────────────────
 
-// 1. Variables globales — cascade vers tous les tokens Amplify
 :root {
   --amplify-fonts-default-variable: 'Inter', system-ui, sans-serif;
   --amplify-fonts-default-static:   'Inter', system-ui, sans-serif;
 
-  // Orange La Machine comme couleur primaire
-  --amplify-colors-primary-10:  rgba(240,120,0,0.08);
-  --amplify-colors-primary-20:  rgba(240,120,0,0.15);
-  --amplify-colors-primary-40:  rgba(240,120,0,0.35);
-  --amplify-colors-primary-60:  rgba(240,120,0,0.55);
-  --amplify-colors-primary-80:  #D46A00;
-  --amplify-colors-primary-90:  #E07200;
-  --amplify-colors-primary-100: #F07800;
+  --amplify-colors-primary-10:  rgba(250,185,0,0.06);
+  --amplify-colors-primary-20:  rgba(250,185,0,0.12);
+  --amplify-colors-primary-40:  rgba(250,185,0,0.30);
+  --amplify-colors-primary-60:  rgba(250,185,0,0.55);
+  --amplify-colors-primary-80:  #7A5200;
+  --amplify-colors-primary-90:  #E5A800;
+  --amplify-colors-primary-100: #FAB900;
 
-  // Fonds (card = #232630 bien distinct de la page #08090A)
-  --amplify-colors-background-primary:   #232630;
-  --amplify-colors-background-secondary: #2C2F3D;
-  --amplify-colors-background-tertiary:  #353848;
+  --amplify-colors-background-primary:   #FFFFFF;
+  --amplify-colors-background-secondary: #F7F3EB;
+  --amplify-colors-background-tertiary:  #EEE9DE;
 
-  // Texte
-  --amplify-colors-font-primary:     #EFEFEF;
-  --amplify-colors-font-secondary:   #A0A0A0;
-  --amplify-colors-font-tertiary:    #686868;
-  --amplify-colors-font-interactive: #F07800;
-  --amplify-colors-font-hover:       #FF9D2E;
-  --amplify-colors-font-focus:       #F07800;
-  --amplify-colors-font-inverse:     #080A0A;
+  --amplify-colors-font-primary:     #120F0A;
+  --amplify-colors-font-secondary:   #4A3D2E;
+  --amplify-colors-font-tertiary:    #5C4E3C;
+  --amplify-colors-font-interactive: #7A5200;
+  --amplify-colors-font-hover:       #FAB900;
+  --amplify-colors-font-focus:       #7A5200;
+  --amplify-colors-font-inverse:     #120F0A;
 
-  // Bordures
-  --amplify-colors-border-primary:   rgba(255,255,255,0.16);
-  --amplify-colors-border-secondary: rgba(255,255,255,0.08);
-  --amplify-colors-border-focus:     #F07800;
+  --amplify-colors-border-primary:   rgba(0,0,0,0.16);
+  --amplify-colors-border-secondary: rgba(0,0,0,0.08);
+  --amplify-colors-border-focus:     #FAB900;
 
-  // Radius
   --amplify-radii-small:  6px;
   --amplify-radii-medium: 8px;
   --amplify-radii-large:  12px;
 
-  // Shadow
-  --amplify-shadows-medium: 0 20px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.08);
+  --amplify-shadows-medium: 0 8px 32px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.06);
 }
 
-// 2. Variables composant (sélecteur officiel)
 [data-amplify-authenticator] {
-  --amplify-components-authenticator-router-background-color:   #232630;
+  --amplify-components-authenticator-router-background-color:   #FFFFFF;
   --amplify-components-authenticator-router-border-style:       solid;
   --amplify-components-authenticator-router-border-width:       1px;
-  --amplify-components-authenticator-router-border-color:       rgba(255,255,255,0.12);
-  --amplify-components-authenticator-router-box-shadow:
-    0 20px 60px rgba(0,0,0,0.85), 0 0 0 1px rgba(255,255,255,0.06);
-  --amplify-components-authenticator-state-inactive-background-color: #2C2F3D;
-  --amplify-components-button-primary-background-color:         #F07800;
-  --amplify-components-button-primary-color:                    #080A0A;
-  --amplify-components-button-primary-hover-background-color:   #FF9D2E;
-  --amplify-components-button-primary-focus-background-color:   #FF9D2E;
-  --amplify-components-fieldcontrol-color:                      #EFEFEF;
-  --amplify-components-fieldcontrol-border-color:               rgba(255,255,255,0.1);
+  --amplify-components-authenticator-router-border-color:       rgba(0,0,0,0.10);
+  --amplify-components-authenticator-router-box-shadow:         0 8px 32px rgba(0,0,0,0.12);
+  --amplify-components-authenticator-state-inactive-background-color: #F7F3EB;
+  --amplify-components-button-primary-background-color:         #FAB900;
+  --amplify-components-button-primary-color:                    #120F0A;
+  --amplify-components-button-primary-hover-background-color:   #FFC830;
+  --amplify-components-button-primary-focus-background-color:   #FFC830;
+  --amplify-components-fieldcontrol-color:                      #120F0A;
+  --amplify-components-fieldcontrol-border-color:               rgba(0,0,0,0.14);
   --amplify-components-fieldcontrol-border-radius:              8px;
-  --amplify-components-fieldcontrol-focus-border-color:         #F07800;
-  --amplify-components-fieldcontrol-focus-box-shadow:           0 0 0 3px rgba(240,120,0,0.2);
+  --amplify-components-fieldcontrol-focus-border-color:         #FAB900;
+  --amplify-components-fieldcontrol-focus-box-shadow:           0 0 0 3px rgba(250,185,0,0.2);
 }
 
-// 3. Page d'auth — uniquement quand NON authentifié
-// :has(.app-shell) détecte que l'utilisateur est connecté → reset du layout centré
 amplify-authenticator {
   display: block;
   width: 100%;
-  // override la max-width de 60rem qu'Amplify impose par défaut
   --amplify-components-authenticator-max-width: 100vw;
 }
 
-// État non-authentifié : centrer le formulaire
 amplify-authenticator:not(:has(.app-shell)) {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: #07080A;
+  background: #F7F3EB;
   background-image:
-    radial-gradient(ellipse 50% 40% at 25% 35%, rgba(240,120,0,0.05) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 50% at 75% 65%, rgba(212,43,0,0.03) 0%, transparent 65%);
+    radial-gradient(ellipse 50% 40% at 25% 35%, rgba(250,185,0,0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 50% at 75% 65%, rgba(250,185,0,0.06) 0%, transparent 65%);
 }
 
-// État authentifié : reset complet — laisser app-shell prendre tout l'espace
 amplify-authenticator:has(.app-shell) {
   background: none;
   min-height: 0;
 }
 
-// 4. Sélecteurs directs — filet de sécurité si les variables ne cascadent pas
-// La card (fond #232630 sur page #07080A — contraste visible)
 [data-amplify-authenticator] [data-amplify-router] {
-  background-color: #232630 !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
+  background-color: #FFFFFF !important;
+  border: 1px solid rgba(0,0,0,0.10) !important;
   border-radius: 16px !important;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.85) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
   overflow: hidden;
 }
 
 [data-amplify-authenticator] [data-state="inactive"] {
-  background-color: #2C2F3D !important;
+  background-color: #F7F3EB !important;
 }
 
 .amplify-button[data-variation="primary"],
 .amplify-button--primary {
-  background-color: #F07800 !important;
-  color: #080A0A !important;
+  background-color: #FAB900 !important;
+  color: #120F0A !important;
   font-family: 'Inter', sans-serif !important;
   font-weight: 700 !important;
   letter-spacing: -0.01em !important;
-  &:hover { background-color: #FF9D2E !important; }
+  &:hover { background-color: #FFC830 !important; }
 }
 
 .amplify-tabs__tab {
   font-family: 'Inter', sans-serif !important;
   font-size: 0.875rem !important;
   font-weight: 500 !important;
-  color: #686868 !important;
+  color: #5C4E3C !important;
 }
 .amplify-tabs__tab--active {
-  color: #F07800 !important;
-  border-color: #F07800 !important;
+  color: #7A5200 !important;
+  border-color: #FAB900 !important;
 }
 
 .amplify-input {
-  background-color: #2C2F3D !important;
-  border-color: rgba(255,255,255,0.1) !important;
+  background-color: #FFFFFF !important;
+  border-color: rgba(0,0,0,0.14) !important;
   border-radius: 8px !important;
-  color: #EFEFEF !important;
+  color: #120F0A !important;
   font-family: 'Inter', sans-serif !important;
-  &::placeholder { color: rgba(255,255,255,0.25) !important; }
+  &::placeholder { color: rgba(0,0,0,0.3) !important; }
   &:focus {
-    border-color: #F07800 !important;
-    box-shadow: 0 0 0 3px rgba(240,120,0,0.2) !important;
+    border-color: #FAB900 !important;
+    box-shadow: 0 0 0 3px rgba(250,185,0,0.2) !important;
     outline: none !important;
   }
 }
 
 .amplify-label {
-  color: #A0A0A0 !important;
+  color: #4A3D2E !important;
   font-family: 'Inter', sans-serif !important;
   font-size: 0.8125rem !important;
   font-weight: 500 !important;
 }
 
 .amplify-heading {
-  color: #EFEFEF !important;
+  color: #120F0A !important;
   font-family: 'Inter', sans-serif !important;
-  font-size: 1.125rem !important;   // taille raisonnable — pas de h1 géant
-  font-weight: 600 !important;
-  letter-spacing: -0.02em !important;
-  line-height: 1.3 !important;
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.2 !important;
 }
 
 .amplify-button[data-variation="link"],
 .amplify-button--link {
-  color: #F07800 !important;
+  color: #7A5200 !important;
   font-family: 'Inter', sans-serif !important;
-  &:hover { color: #FF9D2E !important; }
+  &:hover { color: #5C3D00 !important; }
 }
 
-// ── En-tête custom : logo + titre ────────────────────────────────────────────
+// ── En-tête auth ─────────────────────────────────────────────────────────────
 .auth-header {
   display: flex;
   flex-direction: column;
@@ -516,11 +515,11 @@ amplify-authenticator:has(.app-shell) {
   .machine-body {
     width: 40px;
     height: 32px;
-    background: var(--orange);
+    background: var(--yellow);
     border-radius: 6px;
     position: absolute;
     bottom: 0;
-    box-shadow: 0 4px 16px rgba(240,120,0,0.3);
+    box-shadow: 0 4px 16px rgba(250,185,0,0.3);
   }
 
   .machine-button {
@@ -532,7 +531,7 @@ amplify-authenticator:has(.app-shell) {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    box-shadow: 0 0 12px rgba(212,43,0,0.8);
+    box-shadow: 0 0 12px rgba(196,32,0,0.5);
   }
 }
 
@@ -540,7 +539,7 @@ amplify-authenticator:has(.app-shell) {
   font-family: 'Inter', sans-serif;
   font-size: 1.375rem;
   font-weight: 700;
-  color: #F0F0F0;
+  color: #120F0A;
   letter-spacing: -0.03em;
   line-height: 1.1;
   margin: 0;

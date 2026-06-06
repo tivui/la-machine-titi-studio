@@ -73,13 +73,13 @@
 .progress-pct {
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--orange);
+  color: var(--yellow-dk);
   font-family: 'Roboto Mono', monospace;
 }
 
 .flash-bar {
-  --mdc-linear-progress-active-indicator-color: var(--orange);
-  --mdc-linear-progress-track-color: rgba(255,255,255,0.05);
+  --mdc-linear-progress-active-indicator-color: var(--yellow);
+  --mdc-linear-progress-track-color: rgba(250,185,0,0.12);
   border-radius: 3px;
   height: 4px;
 }
@@ -127,7 +127,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: rgba(240,120,0,0.08);
+  background: rgba(250,185,0,0.12);
   border: var(--bd-orange);
   display: flex;
   align-items: center;
@@ -137,7 +137,7 @@
     font-size: 26px;
     height: 26px;
     width: 26px;
-    color: var(--orange);
+    color: var(--yellow-dk);
   }
 }
 
@@ -157,25 +157,25 @@
   height: 44px;
   border-radius: var(--radius-md);
   border: none;
-  background: var(--orange);
-  color: #080A0A;
+  background: var(--yellow);
+  color: #120F0A;
   font-size: 0.9375rem;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: 'Instrument Sans', 'Inter', sans-serif;
   letter-spacing: -0.01em;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
-  box-shadow: 0 0 20px rgba(240,120,0,0.25);
+  box-shadow: 0 2px 12px rgba(250,185,0,0.3);
 
   mat-icon { font-size: 18px; height: 18px; width: 18px; }
 
   &:hover:not([disabled]) {
-    background: var(--orange-lt);
-    box-shadow: 0 0 28px rgba(240,120,0,0.4);
+    background: var(--yellow-lt);
+    box-shadow: 0 4px 20px rgba(250,185,0,0.45);
   }
 
   &[disabled] {
-    background: rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.06);
     color: var(--tx-3);
     cursor: not-allowed;
     box-shadow: none;
