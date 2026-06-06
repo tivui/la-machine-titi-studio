@@ -14,4 +14,5 @@ export interface ImageTheme {
   s3Key: string;
   isOriginal: boolean;
   sizeKb?: number;
+  choreographyThemeId?: string;
 }

@@ -65,7 +65,7 @@ export class LibraryService {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: themes, errors } = await (client as any).models.ImageTheme.list({
         selectionSet: [
-          'id', 'name', 'description', 'buildDate', 's3Key', 'isOriginal', 'sizeKb',
+          'id', 'name', 'description', 'buildDate', 's3Key', 'isOriginal', 'sizeKb', 'choreographyThemeId',
           'sounds.id', 'sounds.name', 'sounds.filename', 'sounds.isSystem', 'sounds.durationSec',
         ],
       });
@@ -81,6 +81,7 @@ export class LibraryService {
         s3Key: t.s3Key,
         isOriginal: t.isOriginal ?? false,
         sizeKb: t.sizeKb ?? undefined,
+        choreographyThemeId: t.choreographyThemeId ?? undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         sounds: (t.sounds ?? []).map((s: any): Sound => ({
           name:        s.name,

@@ -11,10 +11,9 @@
       <p class="page-subtitle">{{ (customImages().length + (originalImage() ? 1 : 0)) }} images · {{ totalSounds() }} sons</p>
     </div>
     <div class="library-header-actions">
-      <!-- Recharger depuis AppSync (utile après npm run seed) -->
       <button mat-icon-button (click)="reload()"
               [disabled]="loading()"
-              matTooltip="Recharger depuis DynamoDB (après npm run seed)">
+              matTooltip="Recharger depuis DynamoDB">
         <mat-icon>refresh</mat-icon>
       </button>
 
@@ -23,7 +22,7 @@
       } @else {
         <button mat-stroked-button class="import-btn"
                 (click)="triggerSoundImport()"
-                matTooltip="Importer un fichier MP3 mono 44.1 kHz dans la bibliothèque">
+                matTooltip="Importer un fichier MP3 mono 44.1 kHz">
           <mat-icon>audio_file</mat-icon>
           Importer un son
         </button>
@@ -71,6 +70,109 @@
       </section>
     }
 
+    <!-- ── Mes thèmes — Build d'image ── -->
+    @if (customThemes().length > 0) {
+      <section class="lib-section">
+        <div class="section-header">
+          <span class="section-label">Mes thèmes</span>
+          <button mat-button class="section-link" (click)="goToEditor()">
+            <mat-icon>edit</mat-icon>
+            Éditeur
+          </button>
+        </div>
+
+        <div class="themes-list">
+          @for (theme of customThemes(); track theme.id) {
+            @let job = latestBuildForTheme(theme.id);
+            @let image = imageByTheme().get(theme.id);
+            @let isBuilding = buildingId() === theme.id;
+            @let isActive = job?.status === 'queued' || job?.status === 'running';
+
+            <div class="theme-card card-surface" [class.theme-card--building]="isActive">
+
+              <!-- Header -->
+              <div class="theme-card-header">
+                <span class="theme-emoji">{{ theme.emoji || '🎵' }}</span>
+                <div class="theme-info">
+                  <h3 class="theme-name">{{ theme.name }}</h3>
+                  <span class="theme-meta">
+                    {{ choreoCount(theme.id) }} chorégraphie{{ choreoCount(theme.id) !== 1 ? 's' : '' }}
+                  </span>
+                </div>
+
+                <!-- Actions -->
+                <div class="theme-actions">
+                  @if (image) {
+                    <button mat-stroked-button class="flash-btn"
+                            (click)="flash(image)"
+                            matTooltip="Flasher cette image sur La Machine">
+                      <mat-icon>bolt</mat-icon>
+                      Flash
+                    </button>
+                  }
+
+                  @if (isBuilding || isActive) {
+                    <div class="build-spinner-wrap" matTooltip="{{ buildStatusLabel(theme.id) }}">
+                      <mat-spinner diameter="18"></mat-spinner>
+                    </div>
+                  } @else {
+                    <button mat-stroked-button class="build-btn"
+                            [disabled]="choreoCount(theme.id) === 0"
+                            (click)="buildImage(theme)"
+                            [matTooltip]="choreoCount(theme.id) === 0 ? 'Aucune chorégraphie à compiler' : 'Générer une image firmware pour ce thème'">
+                      <mat-icon>memory</mat-icon>
+                      {{ image ? 'Rebuild' : 'Build image' }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              <!-- Statut build -->
+              @if (job) {
+                <div class="build-status" [class]="'build-status--' + job.status">
+                  <mat-icon class="build-status-icon">
+                    @switch (job.status) {
+                      @case ('queued')  { schedule }
+                      @case ('running') { sync }
+                      @case ('success') { check_circle }
+                      @case ('failed')  { error }
+                    }
+                  </mat-icon>
+                  <span class="build-status-text">{{ buildStatusLabel(theme.id) }}</span>
+
+                  @if (job.startedAt) {
+                    <span class="build-status-date">{{ formatDate(job.startedAt) }}</span>
+                  }
+
+                  @if (job.workflowRunId || job.status === 'running') {
+                    <button mat-icon-button class="build-gh-btn"
+                            (click)="openWorkflowRun(theme.id)"
+                            matTooltip="Voir le build sur GitHub Actions">
+                      <mat-icon>open_in_new</mat-icon>
+                    </button>
+                  }
+
+                  @if (job.status === 'failed' && job.errorMessage) {
+                    <span class="build-error-msg" [matTooltip]="job.errorMessage">
+                      <mat-icon>info</mat-icon>
+                    </span>
+                  }
+                </div>
+              }
+
+              <!-- Image buildée -->
+              @if (image) {
+                <div class="theme-image-info">
+                  <mat-icon>developer_board</mat-icon>
+                  <span>{{ image.name }} · {{ formatDate(image.buildDate) }} · {{ formatSize(image.sizeKb) }}</span>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+    }
+
     <!-- ── Mes images ── -->
     <section class="lib-section">
       <span class="section-label">Mes images</span>
@@ -101,7 +203,9 @@
               <hr class="divider" />
 
               <!-- Description -->
-              <p class="img-card-desc">{{ img.description }}</p>
+              @if (img.description) {
+                <p class="img-card-desc">{{ img.description }}</p>
+              }
 
               <!-- Sons -->
               <div class="img-card-sounds">
@@ -125,7 +229,6 @@
               <!-- Actions -->
               <hr class="divider" />
               <div class="img-card-actions">
-                <button mat-button class="details-btn">Détails</button>
                 <button mat-raised-button color="primary" (click)="flash(img)">
                   <mat-icon>bolt</mat-icon>
                   Flash

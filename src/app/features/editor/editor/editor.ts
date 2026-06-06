@@ -23,6 +23,7 @@ import { getUrl, uploadData } from 'aws-amplify/storage';
 import { LibraryService } from '../../library/services/library.service';
 import { ChoreographyService } from '../services/choreography.service';
 import { Choreography, ServoPoint } from '../models/choreography.model';
+import { toErlang } from '../utils/erlang-generator';
 
 // ── Constantes canvas (CSS pixels) ────────────────────────────────────────────
 const RULER_H   = 28;
@@ -900,18 +901,7 @@ export class Editor implements AfterViewInit, OnDestroy {
   }
 
   private toErlang(c: Choreography): string {
-    const parts: string[] = [], events: Array<{ timeMs: number; tok: string }> = [];
-    let cursor = 0;
-    if (c.mp3File) events.push({ timeMs: 0, tok: `{mp3, <<"${c.mp3File}">>}` });
-    for (const sp of [...c.servoPoints].sort((a, b) => a.timeMs - b.timeMs))
-      events.push({ timeMs: sp.timeMs, tok: sp.durationMs > 0 ? `{servo, ${sp.position}, ${sp.durationMs}}` : `{servo, ${sp.position}}` });
-    for (const ev of events) {
-      if (ev.timeMs > cursor) { parts.push(`{wait, ${ev.timeMs - cursor}}`); cursor = ev.timeMs; }
-      parts.push(ev.tok);
-    }
-    if (c.mp3File) parts.push('{wait, sound}');
-    parts.push('{servo, 100}', '{wait, 300}', '{servo, 0, 1500}');
-    return parts.join(', ');
+    return toErlang(c);
   }
 
   // ── Mutateurs signal ──────────────────────────────────────────────────────────
