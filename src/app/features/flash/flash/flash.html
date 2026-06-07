@@ -76,7 +76,7 @@
             </div>
             <div class="check-item">
               <mat-icon class="check-icon">sports_esports</mat-icon>
-              Le bouton rouge sphère est accessible (mode flash)
+              Le bouton rouge sphère est accessible — tu devras l'appuyer après le flash
             </div>
           </div>
         </section>
@@ -104,9 +104,18 @@
             <mat-icon class="state-icon">check_circle</mat-icon>
             <div>
               <strong>Flash réussi !</strong>
-              <p>La Machititine redémarre avec le nouveau firmware.</p>
+              <p>Le firmware est écrit sur La Machine.</p>
             </div>
           </div>
+
+          <div class="state-card state-card--warning" style="margin-top: 0.75rem">
+            <mat-icon class="state-icon">touch_app</mat-icon>
+            <div>
+              <strong>Avant de débrancher le câble USB</strong>
+              <p>Appuie sur le <strong>bouton rouge sphère</strong> — La Machine démarre avec le nouveau firmware, puis tu peux débrancher.</p>
+            </div>
+          </div>
+
           <div class="result-actions">
             <button mat-button (click)="reset()"><mat-icon>refresh</mat-icon> Flasher à nouveau</button>
             <button mat-raised-button color="primary" (click)="goToLibrary()">
