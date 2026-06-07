@@ -1,7 +1,8 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { generateClient } from 'aws-amplify/data';
 import { Choreography, ChoreographyTheme } from '../../editor/models/choreography.model';
 import { toChoreoJson } from '../../editor/utils/erlang-generator';
+import { LibraryService } from './library.service';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const client = generateClient<any>();
@@ -22,6 +23,8 @@ export interface BuildJob {
 
 @Injectable({ providedIn: 'root' })
 export class BuildService {
+  private readonly libraryService = inject(LibraryService);
+
   private readonly _jobs    = signal<BuildJob[]>([]);
   private readonly _loading = signal(false);
   private _pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -100,7 +103,15 @@ export class BuildService {
     if (this._pollInterval) return;
     // Recharger toutes les 30s tant qu'il y a des jobs actifs
     this._pollInterval = setInterval(async () => {
+      const prevActiveIds = new Set(this.activeJobs().map(j => j.id));
       await this.loadJobs();
+      // Si un job actif est passé à 'success', recharger les images
+      const justSucceeded = this._jobs().some(
+        j => prevActiveIds.has(j.id) && j.status === 'success'
+      );
+      if (justSucceeded) {
+        await this.libraryService.reload();
+      }
       if (this.activeJobs().length === 0) {
         this.stopPolling();
       }

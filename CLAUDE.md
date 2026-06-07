@@ -309,13 +309,129 @@ Toujours `tX(0)` (pas `0`).
 
 ---
 
+## Build d'image firmware — Pipeline complet
+
+Un thème de chorégraphies = une image firmware. Le build est obligatoirement côté serveur (Erlang compilé, pas de lecture JSON au runtime).
+
+### Flux de bout en bout
+
+```
+Studio Angular (Library)
+  → BuildService.triggerBuild()
+  → AppSync mutation triggerBuild
+Lambda triggerBuild (Amplify Function)
+  → crée BuildJob { status: 'queued' } dans DynamoDB
+  → POST https://api.github.com/repos/tivui/la-machine-titi/actions/workflows/build-custom.yaml/dispatches
+      ref: custom/mes_sons
+      inputs: { theme_id, theme_name, choreographies_b64, build_job_id }
+GitHub Actions (tivui/la-machine-titi, branche custom/mes_sons)
+  → Mark build as running → UpdateBuildJob { status: 'running' }
+  → Generate choreographies.json : merge custom choreos sur original via jq (préserve system + meuh)
+  → aws s3 sync s3://bucket/sounds/ sounds/
+  → rebar3 compile (build_assets.escript → sounds.bin + HRL)
+  → rebar3 atomvm packbeam -p -e atomvmlib.avm → la_machine.avm
+  → aws s3 cp firmware-base/* (bootloader.bin, atomvm-esp32.bin, partitions.bin, mkimage.erl)
+  → escript mkimage.erl → la_machine.img
+  → aws s3 cp image/la_machine.img → s3://bucket/images/{themeId}/la_machine.img
+  → UpdateBuildJob { status: 'success', imageS3Key }
+  → CreateImageTheme { name, s3Key, choreographyThemeId, buildDate, sizeKb }
+Studio Angular (polling BuildService toutes les 30s)
+  → détecte status: 'success' → recharge LibraryService.images()
+  → bouton Flash activé sur la carte du thème
+Page Flash (/flash?imageId=...)
+  → getUrl S3 → fetch .img → ESPLoader.writeFlash(offset 0) via Web Serial
+```
+
+### Secrets requis
+
+**Amplify SSM Parameter Store** (configurés via `npx amplify sandbox secret set`) :
+| Clé | Usage |
+|---|---|
+| `GITHUB_TOKEN` | PAT GitHub avec scopes `repo` + `workflow` |
+| `AMPLIFY_API_KEY` | clé API AppSync publicApiKey |
+
+**GitHub Secrets** (Settings → Secrets → Actions de `tivui/la-machine-titi`) :
+| Clé | Valeur |
+|---|---|
+| `AMPLIFY_API_ENDPOINT` | URL GraphQL AppSync (dans amplify_outputs.json) |
+| `AMPLIFY_API_KEY` | clé API AppSync |
+| `AWS_ACCESS_KEY_ID` | credentials IAM (dans ~/.aws/credentials) |
+| `AWS_SECRET_ACCESS_KEY` | credentials IAM |
+| `AWS_REGION` | `eu-west-3` |
+| `S3_BUCKET` | nom du bucket Amplify Storage |
+
+### VM artifacts dans S3 (one-time setup)
+
+Ces fichiers ne changent pas entre builds custom. Ils sont générés par le job `build_vm` de `build.yaml` (run manuel sur `tivui/la-machine-titi`) et uploadés une fois dans S3 :
+
+```
+s3://bucket/firmware-base/bootloader.bin
+s3://bucket/firmware-base/atomvm-esp32.bin
+s3://bucket/firmware-base/partitions.bin
+s3://bucket/firmware-base/mkimage.erl
+```
+
+Si AtomVM est mis à jour dans le firmware, relancer `build.yaml` manuellement et re-uploader ces 4 fichiers.
+
+### Merge des chorégraphies (règle critique)
+
+Le workflow **merge** les choreos custom sur les 170+ originaux, il ne les remplace pas :
+```bash
+jq -s '.[0] * .[1]' choreographies.json custom_choreos.json > merged.json
+```
+`.[0]` = original (system_welcome, system_batterylow, meuh_03676…), `.[1]` = custom → les clés custom écrasent/ajoutent. Sans ce merge, les sons système et meuh seraient absents du firmware.
+
+### Fichiers clés du pipeline
+
+| Fichier | Rôle |
+|---|---|
+| `amplify/functions/trigger-build/handler.ts` | Lambda AppSync resolver — crée BuildJob + dispatch GitHub |
+| `amplify/functions/trigger-build/resource.ts` | Déclaration Amplify (`resourceGroupName: 'data'` obligatoire) |
+| `amplify/backend.ts` | Injection env vars via `cfnResources` |
+| `src/app/features/library/services/build.service.ts` | Polling BuildJob, trigger, reload images on success |
+| `tivui/la-machine-titi/.github/workflows/build-custom.yaml` | Workflow GitHub Actions (sur `main` ET `custom/mes_sons`) |
+
+### Amplify Lambda — Injection des variables d'environnement
+
+Amplify Gen 2 n'injecte pas `AMPLIFY_DATA_GRAPHQL_ENDPOINT` automatiquement via les interfaces TypeScript (`IFunction`, `IGraphqlApi` n'exposent pas `addEnvironment` / `graphqlUrl`). Solution via le CDK escape hatch `cfnResources` dans `backend.ts` :
+
+```typescript
+backend.triggerBuild.resources.cfnResources.cfnFunction.addPropertyOverride(
+  'Environment.Variables.AMPLIFY_DATA_GRAPHQL_ENDPOINT',
+  backend.data.resources.cfnResources.cfnGraphqlApi.attrGraphQlUrl,
+);
+```
+
+### Dépendance circulaire CloudFormation
+
+La Lambda référence AppSync (pour `attrGraphQlUrl`) → risque de dépendance circulaire entre les stacks. Solution : `resourceGroupName: 'data'` dans `defineFunction` place la Lambda dans le **même stack** que AppSync, éliminant la dépendance inter-stacks.
+
+```typescript
+export const triggerBuild = defineFunction({
+  name: 'triggerBuild',
+  entry: './handler.ts',
+  resourceGroupName: 'data',   // même stack que data — obligatoire
+  environment: { GITHUB_TOKEN: secret('GITHUB_TOKEN'), AMPLIFY_API_KEY: secret('AMPLIFY_API_KEY') },
+  timeoutSeconds: 30,
+});
+```
+
+### workflow_dispatch — règle GitHub
+
+**Le fichier workflow doit être sur la branche par défaut (`main`)** pour être triggerable via l'API, même si l'exécution se fait sur une autre branche (`ref: custom/mes_sons`). Si `build-custom.yaml` n'est que sur `custom/mes_sons`, l'API retourne 404.
+
+`build-custom.yaml` doit donc être committé sur **les deux branches** : `main` (pour la découverte API) et `custom/mes_sons` (pour l'exécution avec les sons perso).
+
+---
+
 ## Schéma de données (Amplify / DynamoDB)
 
 ### ImageTheme
 ```
-id, name, description, buildDate, s3Key, isOriginal, sizeKb
+id, name, description, buildDate, s3Key, isOriginal, sizeKb, choreographyThemeId (FK nullable)
 → hasMany Sound
 ```
+`choreographyThemeId` lie l'image au thème source. `null` pour l'image originale Paul Guyot.
 
 ### Sound
 ```
@@ -340,6 +456,13 @@ servoPointsJson = JSON.stringify(ServoPoint[])
 { id: string; timeMs: number; position: number; durationMs: number; }
 // position: 0-100%, durationMs: 0 = instantané
 ```
+
+### BuildJob
+```
+id, themeId (FK ChoreographyTheme), themeName, status, workflowRunId, startedAt, completedAt, errorMessage, imageS3Key
+status: 'queued' | 'running' | 'success' | 'failed'
+```
+Créé par la Lambda, mis à jour par GitHub Actions via AppSync publicApiKey.
 
 ### Auth
 - Mode défaut : `userPool` (Cognito email + password)
@@ -460,6 +583,12 @@ Palette de base : `mat.$orange-palette` (la plus proche du jaune La Machine).
 | Icône play non centrée | `margin-left` sur l'icône | `display:inline-flex; align-items:center; justify-content:center` sur le bouton |
 | Texte jaune illisible | `#FAB900` = 1.6:1 sur fond clair | Texte accentué = `--yellow-dk` (#7A5200) |
 | `--tx-3` WCAG fail | Valeur trop claire (ex: #8A7968 = 3.78:1) | Garder à `#5C4E3C` (7:1) |
+| `workflow_dispatch` retourne 404 | Workflow pas sur la branche `main` | Committer `build-custom.yaml` sur `main` (ET `custom/mes_sons`) |
+| `addEnvironment` TypeScript error | `IFunction` / `IGraphqlApi` = interfaces CDK sans ces méthodes | Utiliser `cfnResources.cfnFunction.addPropertyOverride()` |
+| `CloudformationStackCircularDependencyError` | Lambda dans son propre stack référence AppSync stack | `resourceGroupName: 'data'` dans `defineFunction` |
+| BuildJob bloqué à `queued` | GitHub Actions a échoué avant de pouvoir updater le statut | Mutation AppSync manuelle : `updateBuildJob(input: {id, status: "failed"})` |
+| Flash button absent après build success | Library ne se recharge pas automatiquement | BuildService.startPolling() appelle `libraryService.reload()` quand un job passe à `success` |
+| Firmware sans sons système | `choreographies.json` remplacé et non mergé | `jq -s '.[0] * .[1]'` original + custom dans le workflow |
 
 ---
 
@@ -476,4 +605,20 @@ ng serve
 npm run seed
 ```
 
-Flash ESP32 : `scripts/flash.ps1` (PowerShell, COM3, firmware en `.img`)
+**Flash ESP32** : page `/flash` dans l'app (Web Serial API, Chrome/Edge). Sélectionner l'image dans la Library → bouton Flash → choisir le port COM.
+
+**Débloquer un BuildJob coincé à `queued`** (PowerShell) :
+```powershell
+$endpoint = "https://<id>.appsync-api.eu-west-3.amazonaws.com/graphql"
+$apiKey   = "da2-..."
+$body = '{"query":"mutation { updateBuildJob(input: {id: \"JOB_ID\", status: \"failed\"}) { id status } }"}'
+Invoke-RestMethod -Uri $endpoint -Method POST `
+  -Headers @{ "Content-Type" = "application/json"; "x-api-key" = $apiKey } `
+  -Body $body
+```
+(Remplacer `JOB_ID` par l'id trouvé via `listBuildJobs`.)
+
+**Valeurs runtime** (sandbox — ne pas committer) :
+- AppSync endpoint + API key : dans `amplify_outputs.json`
+- AWS credentials : dans `~/.aws/credentials` (profil `default`)
+- GitHub PAT (`GITHUB_TOKEN`) : dans KeePass, scopes `repo` + `workflow`
