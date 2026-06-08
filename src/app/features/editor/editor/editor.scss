@@ -756,7 +756,9 @@
   color: var(--tx-4) !important;
   width: 28px !important;
   height: 28px !important;
-  line-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   flex-shrink: 0;
   mat-icon { font-size: 16px !important; height: 16px !important; width: 16px !important; }
   &:hover { color: var(--yellow-dk) !important; background: rgba(250,185,0,0.08) !important; }
@@ -789,7 +791,9 @@
   color: var(--tx-4) !important;
   width: 28px !important;
   height: 28px !important;
-  line-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   flex-shrink: 0;
   mat-icon { font-size: 16px !important; height: 16px !important; width: 16px !important; }
   &:hover { color: var(--yellow-dk) !important; background: rgba(250,185,0,0.08) !important; }
@@ -862,7 +866,9 @@
   color: var(--tx-4) !important;
   width: 28px !important;
   height: 28px !important;
-  line-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   flex-shrink: 0;
   mat-icon { font-size: 16px !important; height: 16px !important; width: 16px !important; }
   &:hover { color: var(--yellow-dk) !important; background: rgba(250,185,0,0.08) !important; }

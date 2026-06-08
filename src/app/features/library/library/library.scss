@@ -262,7 +262,9 @@
   .build-gh-btn {
     width: 22px !important;
     height: 22px !important;
-    line-height: 22px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     margin: -2px -4px -2px 0;
 
     mat-icon { font-size: 13px; height: 13px; width: 13px; }
