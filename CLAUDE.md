@@ -512,7 +512,19 @@ Format généré par `toErlang()` dans `editor.ts` :
 
 ## Boutons Material — overrides importants
 
-**Play button** — centrage icône (inline-flex obligatoire, `margin-left` INTERDIT) :
+### Centrage d'icône — règle universelle
+
+**Tout `mat-icon-button` avec `width`/`height` fixe DOIT avoir** :
+```scss
+display: inline-flex !important;
+align-items: center !important;
+justify-content: center !important;
+```
+`line-height: Npx` ne centre pas les icônes dans Material 3 — **interdit**. `margin-left` sur l'icône — **interdit**.
+
+S'applique à tous les petits boutons icône à taille fixe : `.theme-img-btn`, `.new-theme-btn`, `.new-choreo-inline-btn`, `.logout-btn`, `.build-gh-btn`, etc.
+
+**Play button** — exemple complet :
 ```scss
 .play-btn {
   color: var(--green) !important;
@@ -580,7 +592,7 @@ Palette de base : `mat.$orange-palette` (la plus proche du jaune La Machine).
 | Cercles coupés à gauche | `tX(0) = 0`, cercle de r=6 dépasse | `LEFT_PAD = 6` dans la formule `tX` |
 | Label "0ms" coupé | `textAlign:'center'` à x=0 | `textAlign:'left'` à x=4 pour ms===0 |
 | Compression axe servo | Absorber SERVO_PAD dans la formule `pY` | Étendre `CANVAS_H` de SERVO_PAD (ne pas modifier `pY`) |
-| Icône play non centrée | `margin-left` sur l'icône | `display:inline-flex; align-items:center; justify-content:center` sur le bouton |
+| Icône non centrée dans `mat-icon-button` | `line-height: Npx` ou `margin-left` sur l'icône | `display:inline-flex; align-items:center; justify-content:center` sur **tout** bouton avec `width`/`height` fixe |
 | Texte jaune illisible | `#FAB900` = 1.6:1 sur fond clair | Texte accentué = `--yellow-dk` (#7A5200) |
 | `--tx-3` WCAG fail | Valeur trop claire (ex: #8A7968 = 3.78:1) | Garder à `#5C4E3C` (7:1) |
 | `workflow_dispatch` retourne 404 | Workflow pas sur la branche `main` | Committer `build-custom.yaml` sur `main` (ET `custom/mes_sons`) |
