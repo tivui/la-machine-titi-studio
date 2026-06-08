@@ -20,4 +20,5 @@ export interface ChoreographyTheme {
   description: string;
   emoji: string;
   isBuiltIn: boolean;
+  imageS3Key?: string;
 }

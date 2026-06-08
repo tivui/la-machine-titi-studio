@@ -20,6 +20,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { getUrl, uploadData } from 'aws-amplify/storage';
+import { ChoreographyTheme } from '../models/choreography.model';
 import { LibraryService } from '../../library/services/library.service';
 import { ChoreographyService } from '../services/choreography.service';
 import { Choreography, ServoPoint } from '../models/choreography.model';
@@ -50,9 +51,10 @@ const DRAG_R   = 10;
   styleUrl: './editor.scss',
 })
 export class Editor implements AfterViewInit, OnDestroy {
-  @ViewChild('timeline')      private canvasRef!:      ElementRef<HTMLCanvasElement>;
-  @ViewChild('mp3LocalInput') private mp3LocalRef!:    ElementRef<HTMLInputElement>;
-  @ViewChild('soundUpload')   private soundUploadRef!: ElementRef<HTMLInputElement>;
+  @ViewChild('timeline')        private canvasRef!:         ElementRef<HTMLCanvasElement>;
+  @ViewChild('mp3LocalInput')   private mp3LocalRef!:       ElementRef<HTMLInputElement>;
+  @ViewChild('soundUpload')     private soundUploadRef!:    ElementRef<HTMLInputElement>;
+  @ViewChild('themeImageInput') private themeImageRef!:     ElementRef<HTMLInputElement>;
 
   private library    = inject(LibraryService);
   private svc        = inject(ChoreographyService);
@@ -80,6 +82,11 @@ export class Editor implements AfterViewInit, OnDestroy {
     const id = this._currentId();
     return id ? (this.choreos().find(c => c.id === id) ?? null) : null;
   });
+
+  // ── Image du thème sélectionné ───────────────────────────────────────────
+  currentTheme       = computed(() => this.themes().find(t => t.id === this._selectedThemeId()) ?? null);
+  uploadingThemeImage = signal(false);
+  selectedThemeImageUrl = signal<string | null>(null);
 
   // ── Nouveau thème (formulaire inline) ────────────────────────────────────
   showNewThemeForm = signal(false);
@@ -139,6 +146,7 @@ export class Editor implements AfterViewInit, OnDestroy {
   private rafId             = 0;
   private playStart         = 0;
   private saveTimerId:    ReturnType<typeof setTimeout> | null = null;
+  private pendingSave:    import('../models/choreography.model').Choreography | null = null;
   private resizeObserver: ResizeObserver | null = null;
 
   constructor() {
@@ -148,6 +156,18 @@ export class Editor implements AfterViewInit, OnDestroy {
       if (themes.length > 0 && !this._selectedThemeId()) {
         const def = themes.find(t => !t.isBuiltIn) ?? themes[0];
         this._selectedThemeId.set(def.id);
+      }
+    });
+
+    // Charger l'URL signée de l'image du thème sélectionné
+    effect(() => {
+      const theme = this.currentTheme();
+      if (theme?.imageS3Key) {
+        getUrl({ path: theme.imageS3Key })
+          .then(({ url }) => this.selectedThemeImageUrl.set(url.toString()))
+          .catch(() => this.selectedThemeImageUrl.set(null));
+      } else {
+        this.selectedThemeImageUrl.set(null);
       }
     });
 
@@ -177,6 +197,7 @@ export class Editor implements AfterViewInit, OnDestroy {
   onThemeChange(themeId: string): void {
     if (this._selectedThemeId() === themeId) return;
     this.stopPlay();
+    this.flushPendingSave();
     this._selectedThemeId.set(themeId);
     this._currentId.set(null);
     this.selectedPointId.set(null);
@@ -203,6 +224,65 @@ export class Editor implements AfterViewInit, OnDestroy {
       );
   }
 
+  // ── Image du thème ────────────────────────────────────────────────────────────
+
+  triggerThemeImageUpload(): void {
+    const theme = this.currentTheme();
+    if (!theme || theme.isBuiltIn || this.uploadingThemeImage()) return;
+    this.themeImageRef.nativeElement.click();
+  }
+
+  async onThemeImageSelected(event: Event): Promise<void> {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    (event.target as HTMLInputElement).value = '';
+
+    const themeId = this._selectedThemeId();
+    if (!themeId) return;
+
+    this.uploadingThemeImage.set(true);
+    try {
+      // Redimensionner en 512×512 JPEG côté client
+      const resized = await this.resizeImage(file, 512);
+      const s3Key   = `themes/${themeId}/cover.jpg`;
+      await uploadData({ path: s3Key, data: resized, options: { contentType: 'image/jpeg' } }).result;
+
+      // Charger l'URL signée immédiatement
+      const { url } = await getUrl({ path: s3Key });
+      this.selectedThemeImageUrl.set(url.toString());
+
+      // Persister dans le thème
+      await this.svc.updateThemeImage(themeId, s3Key);
+      this.snackBar.open('Image du thème mise à jour ✓', undefined, { duration: 3000 });
+    } catch (err) {
+      this.snackBar.open(
+        `Erreur upload : ${err instanceof Error ? err.message : String(err)}`,
+        'OK', { duration: 6000 },
+      );
+    } finally {
+      this.uploadingThemeImage.set(false);
+    }
+  }
+
+  private resizeImage(file: File, maxPx: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const scale  = Math.min(1, maxPx / Math.max(img.width, img.height));
+        const w      = Math.round(img.width  * scale);
+        const h      = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+        canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('toBlob failed')), 'image/jpeg', 0.88);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image non lisible')); };
+      img.src = url;
+    });
+  }
+
   // ── CRUD chorégraphies ────────────────────────────────────────────────────────
 
   newChoreography(): void {
@@ -226,6 +306,7 @@ export class Editor implements AfterViewInit, OnDestroy {
   selectChoreography(id: string): void {
     if (this._currentId() === id) return;
     this.stopPlay();
+    this.flushPendingSave();
     this._currentId.set(id);
     this.selectedPointId.set(null);
     this.resetAudio();
@@ -833,15 +914,20 @@ export class Editor implements AfterViewInit, OnDestroy {
 
       if (abort.signal.aborted || !this.audioReady()) return;
 
-      // Décode le fichier pour la forme d'onde
-      const response = await fetch(audioUrl, { signal: abort.signal });
-      if (abort.signal.aborted || !response.ok) return;
-      const arrayBuf = await response.arrayBuffer();
-      if (abort.signal.aborted) return;
-      const decoded = await this.decodeBlob(new Blob([arrayBuf]));
-      if (abort.signal.aborted) return;
-      this.audioChannels.set(decoded.numberOfChannels);
-      this.waveformData.set(this.extractWaveform(decoded));
+      // Décode le fichier pour la forme d'onde — peut échouer silencieusement si le bucket
+      // S3 n'a pas encore de règle CORS pour localhost (l'audio joue quand même).
+      try {
+        const response = await fetch(audioUrl, { signal: abort.signal });
+        if (abort.signal.aborted || !response.ok) return;
+        const arrayBuf = await response.arrayBuffer();
+        if (abort.signal.aborted) return;
+        const decoded = await this.decodeBlob(new Blob([arrayBuf]));
+        if (abort.signal.aborted) return;
+        this.audioChannels.set(decoded.numberOfChannels);
+        this.waveformData.set(this.extractWaveform(decoded));
+      } catch {
+        // CORS ou réseau — la forme d'onde n'est pas affichée, l'audio est toujours lisible
+      }
     } catch (err) {
       if (abort.signal.aborted) return;
       const isAudioErr = err instanceof Error && err.message === 'audio-load-error';
@@ -912,12 +998,24 @@ export class Editor implements AfterViewInit, OnDestroy {
     if (!id || !c) return;
     const updated = fn(c);
     this.svc.updateLocal(updated);
-    // Debounced remote save
+    this.pendingSave = updated;
     if (this.saveTimerId) clearTimeout(this.saveTimerId);
     this.saveTimerId = setTimeout(() => {
-      const latest = this.current();
-      if (latest) this.svc.saveRemote(latest).catch(console.error);
+      this.svc.saveRemote(updated).catch(console.error);
+      this.pendingSave = null;
+      this.saveTimerId = null;
     }, 800);
+  }
+
+  private flushPendingSave(): void {
+    if (this.saveTimerId) {
+      clearTimeout(this.saveTimerId);
+      this.saveTimerId = null;
+    }
+    if (this.pendingSave) {
+      this.svc.saveRemote(this.pendingSave).catch(console.error);
+      this.pendingSave = null;
+    }
   }
 
   private patchPoint(pid: string, fn: (p: ServoPoint) => ServoPoint): void {

@@ -92,7 +92,11 @@
 
               <!-- Header -->
               <div class="theme-card-header">
-                <span class="theme-emoji">{{ theme.emoji || '🎵' }}</span>
+                @if (themeImageUrls().get(theme.id); as imgUrl) {
+                  <img class="theme-cover" [src]="imgUrl" [alt]="theme.name" />
+                } @else {
+                  <span class="theme-emoji">{{ theme.emoji || '🎵' }}</span>
+                }
                 <div class="theme-info">
                   <h3 class="theme-name">{{ theme.name }}</h3>
                   <span class="theme-meta">

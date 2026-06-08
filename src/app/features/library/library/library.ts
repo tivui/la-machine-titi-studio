@@ -1,10 +1,11 @@
-import { Component, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { getUrl } from 'aws-amplify/storage';
 import { LibraryService } from '../services/library.service';
 import { BuildService } from '../services/build.service';
 import { ChoreographyService } from '../../editor/services/choreography.service';
@@ -57,8 +58,33 @@ export class Library implements OnInit {
     return map;
   });
 
-  importing    = signal(false);
-  buildingId   = signal<string | null>(null);  // themeId en cours de build
+  importing       = signal(false);
+  buildingId      = signal<string | null>(null);
+  themeImageUrls  = signal<Map<string, string>>(new Map());
+
+  constructor() {
+    // Charger les URLs d'images signées quand les thèmes changent
+    effect(() => {
+      const themes = this.customThemes().filter(t => t.imageS3Key);
+      if (themes.length > 0) this.loadThemeImageUrls(themes);
+    });
+  }
+
+  private async loadThemeImageUrls(themes: ChoreographyTheme[]): Promise<void> {
+    const entries = await Promise.all(
+      themes.map(async t => {
+        try {
+          const { url } = await getUrl({ path: t.imageS3Key! });
+          return [t.id, url.toString()] as [string, string];
+        } catch { return null; }
+      })
+    );
+    this.themeImageUrls.update(prev => {
+      const next = new Map(prev);
+      for (const e of entries) { if (e) next.set(e[0], e[1]); }
+      return next;
+    });
+  }
 
   async ngOnInit(): Promise<void> {
     await this.buildSvc.loadJobs();

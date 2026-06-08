@@ -35,6 +35,7 @@ const schema = a.schema({
       description:    a.string(),
       emoji:          a.string(),
       isBuiltIn:      a.boolean().default(false),
+      imageS3Key:     a.string(),   // "themes/{id}/cover.jpg" — null = afficher emoji
       choreographies: a.hasMany('ChoreographyRecord', 'themeId'),
     })
     .authorization(allow => [allow.authenticated(), allow.publicApiKey()]),

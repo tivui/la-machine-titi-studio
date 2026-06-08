@@ -5,5 +5,6 @@ export const storage = defineStorage({
   access: (allow) => ({
     'images/*': [allow.authenticated.to(['read', 'write', 'delete'])],
     'sounds/*': [allow.authenticated.to(['read', 'write', 'delete'])],
+    'themes/*': [allow.authenticated.to(['read', 'write', 'delete'])],
   }),
 });

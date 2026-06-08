@@ -105,7 +105,7 @@ export class ChoreographyService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: themes, errors } = await (client as any).models.ChoreographyTheme.list({
       selectionSet: [
-        'id', 'name', 'description', 'emoji', 'isBuiltIn',
+        'id', 'name', 'description', 'emoji', 'isBuiltIn', 'imageS3Key',
         'choreographies.id', 'choreographies.themeId', 'choreographies.name',
         'choreographies.mp3File', 'choreographies.mp3DurationMs', 'choreographies.servoPointsJson',
       ],
@@ -125,6 +125,7 @@ export class ChoreographyService {
       description: t.description ?? '',
       emoji: t.emoji ?? '🎵',
       isBuiltIn: t.isBuiltIn ?? false,
+      imageS3Key: t.imageS3Key ?? undefined,
     }));
     mappedThemes.sort((a, b) => {
       if (a.isBuiltIn !== b.isBuiltIn) return a.isBuiltIn ? -1 : 1;
@@ -258,6 +259,17 @@ export class ChoreographyService {
     this._themes.update(list => [...list, theme]);
     this.persistLocal();
     return theme;
+  }
+
+  async updateThemeImage(themeId: string, imageS3Key: string): Promise<void> {
+    this._themes.update(list =>
+      list.map(t => t.id === themeId ? { ...t, imageS3Key } : t)
+    );
+    this.persistLocal();
+    if (this._source === 'appsync') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (client as any).models.ChoreographyTheme.update({ id: themeId, imageS3Key });
+    }
   }
 
   // ── CRUD chorégraphies ────────────────────────────────────────────────────

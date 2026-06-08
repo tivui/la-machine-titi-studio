@@ -1,8 +1,9 @@
 <div class="editor-page">
 
   <!-- Inputs fichiers cachés -->
-  <input #mp3LocalInput type="file" accept=".mp3,audio/mpeg" class="hidden-input" (change)="onMp3LocalSelected($event)" />
-  <input #soundUpload   type="file" accept=".mp3,audio/mpeg" class="hidden-input" (change)="onSoundUpload($event)" />
+  <input #mp3LocalInput   type="file" accept=".mp3,audio/mpeg"    class="hidden-input" (change)="onMp3LocalSelected($event)" />
+  <input #soundUpload     type="file" accept=".mp3,audio/mpeg"    class="hidden-input" (change)="onSoundUpload($event)" />
+  <input #themeImageInput type="file" accept="image/jpeg,image/png,image/webp" class="hidden-input" (change)="onThemeImageSelected($event)" />
 
   <!-- ── En-tête ─────────────────────────────────────────────────────────── -->
   <div class="editor-page-header">
@@ -30,12 +31,33 @@
       <!-- ── Sélecteur de thème ─────────────────────────────────────────── -->
       <div class="theme-header">
         <span class="section-label" style="margin-bottom:0">Thème</span>
-        <button mat-icon-button class="new-theme-btn"
-                (click)="showNewThemeForm.set(!showNewThemeForm())"
-                [matTooltip]="showNewThemeForm() ? 'Annuler' : 'Nouveau thème'">
-          <mat-icon>{{ showNewThemeForm() ? 'close' : 'create_new_folder' }}</mat-icon>
-        </button>
+        <div class="theme-header-actions">
+          @if (selectedThemeId() && !currentTheme()?.isBuiltIn) {
+            <button mat-icon-button class="theme-img-btn"
+                    [matTooltip]="uploadingThemeImage() ? 'Upload en cours…' : 'Changer l\'image du thème'"
+                    [disabled]="uploadingThemeImage()"
+                    (click)="triggerThemeImageUpload()">
+              @if (uploadingThemeImage()) {
+                <mat-spinner diameter="18"></mat-spinner>
+              } @else {
+                <mat-icon>add_photo_alternate</mat-icon>
+              }
+            </button>
+          }
+          <button mat-icon-button class="new-theme-btn"
+                  (click)="showNewThemeForm.set(!showNewThemeForm())"
+                  [matTooltip]="showNewThemeForm() ? 'Annuler' : 'Nouveau thème'">
+            <mat-icon>{{ showNewThemeForm() ? 'close' : 'create_new_folder' }}</mat-icon>
+          </button>
+        </div>
       </div>
+
+      <!-- Aperçu image du thème -->
+      @if (selectedThemeImageUrl()) {
+        <div class="theme-image-preview" (click)="triggerThemeImageUpload()" matTooltip="Cliquer pour changer">
+          <img [src]="selectedThemeImageUrl()!" [alt]="currentTheme()?.name" />
+        </div>
+      }
 
       @if (themes().length === 0) {
         <div class="sidebar-empty" style="padding: 0.75rem 0;">
