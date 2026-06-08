@@ -447,7 +447,7 @@ id, name, description, emoji, isBuiltIn
 
 ### ChoreographyRecord
 ```
-id, themeId (FK), name, description, mp3File, mp3DurationMs, servoPointsJson
+id, themeId (FK), name, description, mp3File, mp3DurationMs, volume (0-100, null=100), servoPointsJson
 servoPointsJson = JSON.stringify(ServoPoint[])
 ```
 
@@ -472,11 +472,12 @@ Créé par la Lambda, mis à jour par GitHub Actions via AppSync publicApiKey.
 
 ## Export Erlang
 
-Format généré par `toErlang()` dans `editor.ts` :
+Format généré par `toErlang()` dans `src/app/features/editor/utils/erlang-generator.ts` :
 ```
-{mp3, <<"personal/son.mp3">>}, {wait, 115}, {servo, 19}, {wait, 200}, {servo, 0, 300}, {wait, sound}, {servo, 100}, {wait, 300}, {servo, 0, 1500}
+{volume, 80}, {mp3, <<"personal/son.mp3">>}, {wait, 115}, {servo, 19}, {wait, 200}, {servo, 0, 300}, {wait, sound}, {servo, 100}, {wait, 300}, {servo, 0, 1500}
 ```
 
+- `{volume, V}` = inséré avant `{mp3, ...}` si `volume ≠ 100` (ou undefined). Token ignoré si volume = 100.
 - `{wait, sound}` = attendre fin du son (toujours ajouté si mp3File présent)
 - `{servo, pos}` = instantané, `{servo, pos, durMs}` = transition lente
 - La séquence de fin est **toujours** les 3 derniers tokens
@@ -557,10 +558,25 @@ Toute modification de chorégraphie passe par `patchCurrent()` :
 | Touche | Action |
 |---|---|
 | `Espace` | Lecture / Stop |
-| `Backspace` / `Delete` | Supprimer le point sélectionné |
+| `Backspace` / `Delete` | Supprimer la sélection (1 ou N points) |
+| `Ctrl+D` | Dupliquer les points sélectionnés (+200ms) |
+| `Échap` | Désélectionner tout |
 | Clic zone servo | Ajouter un point |
-| Drag point | Déplacer (x=temps, y=position) |
+| `Shift`+clic sur point | Ajouter / retirer de la sélection |
+| `Shift`+drag zone vide | Rectangle de sélection |
+| Drag point sélectionné | Déplacer tout le bloc (écarts relatifs préservés) |
 | Clic zone ruler/audio | Scrub (seek) |
+
+### Multi-sélection — état interne
+
+```typescript
+selectedPointIds = signal<Set<string>>(new Set());  // remplace selectedPointId scalaire
+selectedPoints   = computed(...)  // ServoPoint[] filtrés
+selectedPoint    = computed(...)  // non-null seulement si exactement 1 sélectionné (panel détail)
+clearSelection() // méthode exposée — new Set() interdit dans les templates Angular
+```
+
+Le drag multi-bloc utilise `dragOrigins: Map<string, {timeMs, position}>` pour stocker les positions de départ de tous les points sélectionnés. Le delta (dx, dy) est appliqué uniformément à chacun.
 
 ---
 
