@@ -164,15 +164,27 @@
         </div>
         <div class="shortcut-row">
           <kbd>⌫ Del</kbd>
-          <span>Supprimer point</span>
+          <span>Supprimer sélection</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>Ctrl+D</kbd>
+          <span>Dupliquer</span>
+        </div>
+        <div class="shortcut-row">
+          <kbd>Échap</kbd>
+          <span>Désélectionner</span>
         </div>
         <div class="shortcut-row">
           <span class="shortcut-click">clic</span>
           <span>Ajouter un point</span>
         </div>
         <div class="shortcut-row">
-          <span class="shortcut-click">drag</span>
-          <span>Déplacer un point</span>
+          <span class="shortcut-click">⇧+clic</span>
+          <span>Ajouter à la sélection</span>
+        </div>
+        <div class="shortcut-row">
+          <span class="shortcut-click">⇧+drag</span>
+          <span>Rectangle de sélection</span>
         </div>
       </div>
 
@@ -253,6 +265,19 @@
             </mat-select>
           }
 
+          <!-- Slider volume -->
+          @if (current()!.mp3File) {
+            <div class="volume-control">
+              <mat-icon class="volume-icon">volume_up</mat-icon>
+              <mat-slider min="0" max="100" step="1" class="volume-slider">
+                <input matSliderThumb
+                       [value]="current()!.volume ?? 100"
+                       (valueChange)="updateVolume($event)" />
+              </mat-slider>
+              <span class="volume-val mono">{{ current()!.volume ?? 100 }}%</span>
+            </div>
+          }
+
           <div class="sound-bar-sep"></div>
 
           @if (loadingAudio()) {
@@ -323,7 +348,7 @@
             class="timeline-canvas"
             (mousedown)="onCanvasMouseDown($event)"
             (mousemove)="onCanvasMouseMove($event)"
-            (mouseup)="onCanvasMouseUp()"
+            (mouseup)="onCanvasMouseUp($event)"
             (mouseleave)="onCanvasMouseUp()">
           </canvas>
 
@@ -335,57 +360,74 @@
           }
         </div>
 
-        <!-- ── Panneau détail du point sélectionné ────────────────────── -->
-        @if (selectedPoint(); as sp) {
+        <!-- ── Panneau détail : 1 point ou multi-sélection ─────────────── -->
+        @if (selectedPoints().length > 0) {
           <div class="detail-panel card-surface">
 
-            <div class="detail-header">
-              <div class="icon-avatar icon-avatar--orange">
-                <mat-icon>tune</mat-icon>
+            @if (selectedPoint(); as sp) {
+              <!-- Sélection simple -->
+              <div class="detail-header">
+                <div class="icon-avatar icon-avatar--orange">
+                  <mat-icon>tune</mat-icon>
+                </div>
+                <div class="detail-title-group">
+                  <strong class="detail-title">Point servo</strong>
+                  <span class="detail-sub mono">t&nbsp;=&nbsp;{{ sp.timeMs }}&nbsp;ms</span>
+                </div>
+                <button mat-icon-button class="detail-close" (click)="clearSelection()"
+                        matTooltip="Fermer">
+                  <mat-icon>close</mat-icon>
+                </button>
               </div>
-              <div class="detail-title-group">
-                <strong class="detail-title">Point servo</strong>
-                <span class="detail-sub mono">t&nbsp;=&nbsp;{{ sp.timeMs }}&nbsp;ms</span>
+
+              <div class="detail-fields">
+                <div class="detail-field">
+                  <span class="field-label">Position</span>
+                  <mat-slider min="0" max="100" step="1" discrete class="pos-slider">
+                    <input matSliderThumb [value]="sp.position" (valueChange)="updateSelectedPosition($event)" />
+                  </mat-slider>
+                  <span class="field-val mono">{{ sp.position }}%</span>
+                </div>
+                <div class="detail-field">
+                  <span class="field-label">Durée</span>
+                  <input type="number" class="dur-input mono"
+                         [value]="sp.durationMs" min="0" max="9999" placeholder="0"
+                         (change)="updateSelectedDuration($event)" />
+                  <span class="field-unit">ms</span>
+                  <span class="dur-hint">(0&nbsp;=&nbsp;instantané)</span>
+                </div>
               </div>
-              <button mat-icon-button class="detail-close" (click)="selectedPointId.set(null)"
-                      matTooltip="Fermer">
-                <mat-icon>close</mat-icon>
+
+            } @else {
+              <!-- Multi-sélection -->
+              <div class="detail-header">
+                <div class="icon-avatar icon-avatar--orange">
+                  <mat-icon>tune</mat-icon>
+                </div>
+                <div class="detail-title-group">
+                  <strong class="detail-title">{{ selectedPoints().length }} points sélectionnés</strong>
+                  <span class="detail-sub">Shift+clic pour modifier · Ctrl+D pour dupliquer</span>
+                </div>
+                <button mat-icon-button class="detail-close" (click)="clearSelection()"
+                        matTooltip="Désélectionner">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            }
+
+            <div class="detail-actions">
+              <button mat-stroked-button class="del-point-btn" (click)="deleteSelectedPoints()">
+                <mat-icon>delete</mat-icon>
+                Supprimer {{ selectedPoints().length > 1 ? selectedPoints().length + ' points' : 'ce point' }}
               </button>
+              @if (selectedPoints().length > 0) {
+                <button mat-stroked-button class="dup-point-btn" (click)="duplicateSelectedPoints()"
+                        matTooltip="Ctrl+D">
+                  <mat-icon>content_copy</mat-icon>
+                  Dupliquer
+                </button>
+              }
             </div>
-
-            <div class="detail-fields">
-
-              <div class="detail-field">
-                <span class="field-label">Position</span>
-                <mat-slider min="0" max="100" step="1" discrete class="pos-slider">
-                  <input
-                    matSliderThumb
-                    [value]="sp.position"
-                    (valueChange)="updateSelectedPosition($event)" />
-                </mat-slider>
-                <span class="field-val mono">{{ sp.position }}%</span>
-              </div>
-
-              <div class="detail-field">
-                <span class="field-label">Durée</span>
-                <input
-                  type="number"
-                  class="dur-input mono"
-                  [value]="sp.durationMs"
-                  min="0"
-                  max="9999"
-                  placeholder="0"
-                  (change)="updateSelectedDuration($event)" />
-                <span class="field-unit">ms</span>
-                <span class="dur-hint">(0&nbsp;=&nbsp;instantané)</span>
-              </div>
-
-            </div>
-
-            <button mat-stroked-button class="del-point-btn" (click)="deleteSelectedPoint()">
-              <mat-icon>delete</mat-icon>
-              Supprimer ce point
-            </button>
 
           </div>
         }

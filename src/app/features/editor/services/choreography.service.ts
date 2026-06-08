@@ -107,7 +107,7 @@ export class ChoreographyService {
       selectionSet: [
         'id', 'name', 'description', 'emoji', 'isBuiltIn', 'imageS3Key',
         'choreographies.id', 'choreographies.themeId', 'choreographies.name',
-        'choreographies.mp3File', 'choreographies.mp3DurationMs', 'choreographies.servoPointsJson',
+        'choreographies.mp3File', 'choreographies.mp3DurationMs', 'choreographies.volume', 'choreographies.servoPointsJson',
       ],
     });
 
@@ -140,6 +140,7 @@ export class ChoreographyService {
         name:         c.name,
         mp3File:      c.mp3File ?? '',
         mp3DurationMs: c.mp3DurationMs ?? 0,
+        volume:       c.volume ?? undefined,
         servoPoints:  this.parseSP(c.servoPointsJson),
       }))
     );
@@ -228,6 +229,7 @@ export class ChoreographyService {
       name:            choreo.name,
       mp3File:         choreo.mp3File || undefined,
       mp3DurationMs:   choreo.mp3DurationMs || undefined,
+      volume:          choreo.volume ?? undefined,
       servoPointsJson: JSON.stringify(choreo.servoPoints),
     };
 

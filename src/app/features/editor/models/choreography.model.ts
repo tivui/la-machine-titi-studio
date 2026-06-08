@@ -12,6 +12,7 @@ export interface Choreography {
   mp3File: string;
   mp3DurationMs: number;
   servoPoints: ServoPoint[];
+  volume?: number; // 0-100, undefined = 100 (défaut)
 }
 
 export interface ChoreographyTheme {

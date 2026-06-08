@@ -91,12 +91,18 @@ export class Editor implements AfterViewInit, OnDestroy {
   // ── Nouveau thème (formulaire inline) ────────────────────────────────────
   showNewThemeForm = signal(false);
 
-  // ── Point sélectionné ────────────────────────────────────────────────────────
-  selectedPointId = signal<string | null>(null);
-  selectedPoint   = computed(() => {
-    const id = this.selectedPointId();
-    const c  = this.current();
-    return id && c ? (c.servoPoints.find(p => p.id === id) ?? null) : null;
+  // ── Points sélectionnés (multi-sélection) ────────────────────────────────────
+  selectedPointIds = signal<Set<string>>(new Set());
+  selectedPoints   = computed(() => {
+    const ids = this.selectedPointIds();
+    const c   = this.current();
+    if (!c || ids.size === 0) return [];
+    return c.servoPoints.filter(p => ids.has(p.id));
+  });
+  // Raccourci : non-null seulement quand exactement 1 point sélectionné (panel détail)
+  selectedPoint = computed(() => {
+    const pts = this.selectedPoints();
+    return pts.length === 1 ? pts[0] : null;
   });
 
   // ── Lecture ──────────────────────────────────────────────────────────────────
@@ -141,8 +147,9 @@ export class Editor implements AfterViewInit, OnDestroy {
   private scrubbing         = false;
   private dragStartX        = 0;
   private dragStartY        = 0;
-  private dragOriginTimeMs  = 0;
-  private dragOriginPos     = 0;
+  private dragOrigins       = new Map<string, { timeMs: number; position: number }>();
+  private rectSelStart:     { x: number; y: number } | null = null;
+  private rectSelCurrent:   { x: number; y: number } | null = null;
   private rafId             = 0;
   private playStart         = 0;
   private saveTimerId:    ReturnType<typeof setTimeout> | null = null;
@@ -174,7 +181,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     // Redessiner le canvas à chaque changement d'état
     effect(() => {
       void this.current();
-      void this.selectedPointId();
+      void this.selectedPointIds();
       void this._playTimeMs();
       void this.waveformData();
       requestAnimationFrame(() => this.drawCanvas());
@@ -200,7 +207,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     this.flushPendingSave();
     this._selectedThemeId.set(themeId);
     this._currentId.set(null);
-    this.selectedPointId.set(null);
+    this.selectedPointIds.set(new Set());
     this.showNewThemeForm.set(false);
     this.resetAudio();
   }
@@ -293,7 +300,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     this.svc.createChoreography(themeId, name)
       .then(c => {
         this._currentId.set(c.id);
-        this.selectedPointId.set(null);
+        this.selectedPointIds.set(new Set());
       })
       .catch((err: unknown) =>
         this.snackBar.open(
@@ -308,7 +315,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     this.stopPlay();
     this.flushPendingSave();
     this._currentId.set(id);
-    this.selectedPointId.set(null);
+    this.selectedPointIds.set(new Set());
     this.resetAudio();
     const mp3 = this.current()?.mp3File;
     if (mp3) this.loadAudioFromLibrary(mp3);
@@ -319,7 +326,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     if (!id) return;
     this.stopPlay();
     this._currentId.set(null);
-    this.selectedPointId.set(null);
+    this.selectedPointIds.set(new Set());
     this.svc.deleteChoreography(id).catch(console.error);
   }
 
@@ -327,6 +334,12 @@ export class Editor implements AfterViewInit, OnDestroy {
     const value = (event.target as HTMLInputElement).value.trim();
     if (!value) return;
     this.patchCurrent(c => ({ ...c, name: value }));
+  }
+
+  clearSelection(): void { this.selectedPointIds.set(new Set()); }
+
+  updateVolume(value: number): void {
+    this.patchCurrent(c => ({ ...c, volume: value === 100 ? undefined : value }));
   }
 
   updateSound(filename: string | null): void {
@@ -531,22 +544,33 @@ export class Editor implements AfterViewInit, OnDestroy {
   // ── Point servo ──────────────────────────────────────────────────────────────
 
   updateSelectedPosition(value: number): void {
-    const id = this.selectedPointId();
+    const id = this.selectedPoint()?.id;
     if (id) this.patchPoint(id, p => ({ ...p, position: value }));
   }
 
   updateSelectedDuration(event: Event): void {
-    const id  = this.selectedPointId();
+    const id = this.selectedPoint()?.id;
     if (!id) return;
     const val = parseInt((event.target as HTMLInputElement).value, 10);
     this.patchPoint(id, p => ({ ...p, durationMs: isNaN(val) ? 0 : Math.max(0, val) }));
   }
 
-  deleteSelectedPoint(): void {
-    const id = this.selectedPointId();
-    if (!id) return;
-    this.patchCurrent(c => ({ ...c, servoPoints: c.servoPoints.filter(p => p.id !== id) }));
-    this.selectedPointId.set(null);
+  deleteSelectedPoints(): void {
+    const ids = this.selectedPointIds();
+    if (ids.size === 0) return;
+    this.patchCurrent(c => ({ ...c, servoPoints: c.servoPoints.filter(p => !ids.has(p.id)) }));
+    this.selectedPointIds.set(new Set());
+  }
+
+  duplicateSelectedPoints(): void {
+    const ids = this.selectedPointIds();
+    const c   = this.current();
+    if (!c || ids.size === 0) return;
+    const pts    = c.servoPoints.filter(p => ids.has(p.id));
+    const newPts = pts.map(p => ({ ...p, id: crypto.randomUUID(), timeMs: p.timeMs + 200 }));
+    const newIds = new Set(newPts.map(p => p.id));
+    this.patchCurrent(ch => ({ ...ch, servoPoints: [...ch.servoPoints, ...newPts] }));
+    this.selectedPointIds.set(newIds);
   }
 
   // ── Lecture ──────────────────────────────────────────────────────────────────
@@ -614,16 +638,33 @@ export class Editor implements AfterViewInit, OnDestroy {
 
     const hit = this.hitTestPoint(c, x, y);
     if (hit) {
-      this.selectedPointId.set(hit.id);
-      this.dragging = true; this.dragStartX = x; this.dragStartY = y;
-      this.dragOriginTimeMs = hit.timeMs; this.dragOriginPos = hit.position;
+      if (event.shiftKey) {
+        // Shift+clic : toggle dans la sélection
+        const next = new Set(this.selectedPointIds());
+        if (next.has(hit.id)) next.delete(hit.id); else next.add(hit.id);
+        this.selectedPointIds.set(next);
+      } else {
+        // Clic simple : si le point n'est pas dans la sélection, réinitialiser
+        if (!this.selectedPointIds().has(hit.id)) this.selectedPointIds.set(new Set([hit.id]));
+        // Démarrer le drag sur tous les points sélectionnés
+        const selIds = this.selectedPointIds();
+        this.dragOrigins = new Map(
+          c.servoPoints.filter(p => selIds.has(p.id)).map(p => [p.id, { timeMs: p.timeMs, position: p.position }])
+        );
+        this.dragging = true; this.dragStartX = x; this.dragStartY = y;
+      }
+    } else if (event.shiftKey) {
+      // Shift+drag zone vide → rectangle de sélection
+      this.rectSelStart = { x, y };
+      this.rectSelCurrent = { x, y };
     } else {
+      // Clic zone vide → ajouter un point
       const id = crypto.randomUUID();
       const pt: ServoPoint = { id, timeMs: this.xToTime(x), position: this.yToPos(y), durationMs: 0 };
       this.patchCurrent(ch => ({ ...ch, servoPoints: [...ch.servoPoints, pt] }));
-      this.selectedPointId.set(id);
+      this.selectedPointIds.set(new Set([id]));
+      this.dragOrigins = new Map([[id, { timeMs: pt.timeMs, position: pt.position }]]);
       this.dragging = true; this.dragStartX = x; this.dragStartY = y;
-      this.dragOriginTimeMs = pt.timeMs; this.dragOriginPos = pt.position;
     }
   }
 
@@ -633,19 +674,58 @@ export class Editor implements AfterViewInit, OnDestroy {
     canvas.style.cursor = y < RULER_H + AUDIO_H ? 'col-resize' : 'crosshair';
 
     if (this.scrubbing) { this.seekTo(this.xToTime(x)); return; }
+
+    if (this.rectSelStart) {
+      this.rectSelCurrent = { x, y };
+      this.drawCanvas();
+      return;
+    }
+
     if (!this.dragging) return;
-    const id = this.selectedPointId();
-    if (!id) return;
     const W  = canvas.clientWidth;
     const vd = this.viewDuration();
-    const newTime = Math.max(0, this.dragOriginTimeMs + (x - this.dragStartX) / W * vd);
-    const newPos  = Math.max(0, Math.min(100, this.dragOriginPos - (y - this.dragStartY) / SERVO_H * 100));
-    this.patchPoint(id, p => ({ ...p, timeMs: Math.round(newTime), position: Math.round(newPos) }));
+    const dtMs = (x - this.dragStartX) / W * vd;
+    const dPos = -(y - this.dragStartY) / SERVO_H * 100;
+    const origins = this.dragOrigins;
+    this.patchCurrent(ch => ({
+      ...ch,
+      servoPoints: ch.servoPoints.map(p => {
+        const o = origins.get(p.id);
+        if (!o) return p;
+        return { ...p, timeMs: Math.max(0, Math.round(o.timeMs + dtMs)), position: Math.max(0, Math.min(100, Math.round(o.position + dPos))) };
+      }),
+    }));
   }
 
-  onCanvasMouseUp(): void {
-    this.dragging  = false;
-    this.scrubbing = false;
+  onCanvasMouseUp(event?: MouseEvent): void {
+    if (this.rectSelStart && event) this.finalizeRectSel(event);
+    this.dragging       = false;
+    this.scrubbing      = false;
+    this.rectSelStart   = null;
+    this.rectSelCurrent = null;
+  }
+
+  private finalizeRectSel(event: MouseEvent): void {
+    const c = this.current();
+    if (!c || !this.rectSelStart) return;
+    const { x: ex, y: ey } = this.cssCoords(event);
+    const { x: sx, y: sy } = this.rectSelStart;
+    if (Math.abs(ex - sx) < 5 && Math.abs(ey - sy) < 5) { this.selectedPointIds.set(new Set()); return; }
+
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas) return;
+    const W  = canvas.clientWidth;
+    const vd = this.viewDuration();
+    const tX = (ms: number) => LEFT_PAD + ms / vd * (W - LEFT_PAD);
+    const pY = (pos: number) => RULER_H + AUDIO_H + SERVO_H - (pos / 100 * SERVO_H);
+
+    const x0 = Math.min(sx, ex), x1 = Math.max(sx, ex);
+    const y0 = Math.min(sy, ey), y1 = Math.max(sy, ey);
+    const ids = new Set(c.servoPoints.filter(p => {
+      const px = tX(p.timeMs), py = pY(p.position);
+      return px >= x0 && px <= x1 && py >= y0 && py <= y1;
+    }).map(p => p.id));
+    if (ids.size > 0) this.selectedPointIds.set(ids);
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -653,10 +733,16 @@ export class Editor implements AfterViewInit, OnDestroy {
     const inInput = document.activeElement instanceof HTMLInputElement ||
                     document.activeElement instanceof HTMLTextAreaElement;
     if ((event.key === 'Backspace' || event.key === 'Delete') && !inInput) {
-      event.preventDefault(); this.deleteSelectedPoint();
+      event.preventDefault(); this.deleteSelectedPoints();
     }
     if (event.key === ' ' && !inInput) {
       event.preventDefault(); this.togglePlay();
+    }
+    if (event.key === 'd' && (event.ctrlKey || event.metaKey) && !inInput) {
+      event.preventDefault(); this.duplicateSelectedPoints();
+    }
+    if (event.key === 'Escape' && !inInput) {
+      this.selectedPointIds.set(new Set());
     }
   }
 
@@ -691,6 +777,7 @@ export class Editor implements AfterViewInit, OnDestroy {
     this.drawServoBackground(ctx, cssW, pY);
     if (c) { this.drawServoPath(ctx, c, tX, pY); this.drawServoPoints(ctx, c, tX, pY); }
     this.drawPlayCursor(ctx, tX);
+    this.drawRectSel(ctx);
     ctx.restore();
   }
 
@@ -808,9 +895,10 @@ export class Editor implements AfterViewInit, OnDestroy {
   }
 
   private drawServoPoints(ctx: CanvasRenderingContext2D, c: Choreography, tX: (ms: number) => number, pY: (pos: number) => number): void {
-    const selId = this.selectedPointId();
+    const selIds   = this.selectedPointIds();
+    const onlySel  = selIds.size === 1;
     for (const sp of c.servoPoints) {
-      const x = tX(sp.timeMs), y = pY(sp.position), sel = sp.id === selId;
+      const x = tX(sp.timeMs), y = pY(sp.position), sel = selIds.has(sp.id);
       if (sp.durationMs > 0) {
         const ex = tX(sp.timeMs + sp.durationMs);
         ctx.strokeStyle = sel ? 'rgba(185,115,0,0.70)' : 'rgba(185,115,0,0.30)'; ctx.lineWidth = 2;
@@ -827,12 +915,30 @@ export class Editor implements AfterViewInit, OnDestroy {
       if (sel) {
         ctx.strokeStyle = 'rgba(185,115,0,0.25)'; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(x, y, r + 5, 0, Math.PI * 2); ctx.stroke();
-        ctx.fillStyle = '#120F0A'; ctx.font = 'bold 11px "Roboto Mono", monospace'; ctx.textAlign = 'center';
-        ctx.fillText(`${sp.position}%`, x, y - 17);
-        ctx.fillStyle = 'rgba(130,80,0,0.75)'; ctx.font = '9px "Roboto Mono", monospace';
-        ctx.fillText(`${sp.timeMs}ms`, x, y + 20);
+        // Labels uniquement pour sélection simple
+        if (onlySel) {
+          ctx.fillStyle = '#120F0A'; ctx.font = 'bold 11px "Roboto Mono", monospace'; ctx.textAlign = 'center';
+          ctx.fillText(`${sp.position}%`, x, y - 17);
+          ctx.fillStyle = 'rgba(130,80,0,0.75)'; ctx.font = '9px "Roboto Mono", monospace';
+          ctx.fillText(`${sp.timeMs}ms`, x, y + 20);
+        }
       }
     }
+  }
+
+  private drawRectSel(ctx: CanvasRenderingContext2D): void {
+    if (!this.rectSelStart || !this.rectSelCurrent) return;
+    const { x: x0, y: y0 } = this.rectSelStart;
+    const { x: x1, y: y1 } = this.rectSelCurrent;
+    const rx = Math.min(x0, x1), ry = Math.min(y0, y1);
+    const rw = Math.abs(x1 - x0), rh = Math.abs(y1 - y0);
+    ctx.fillStyle   = 'rgba(250,185,0,0.07)';
+    ctx.strokeStyle = 'rgba(250,185,0,0.55)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.fillRect(rx, ry, rw, rh);
+    ctx.strokeRect(rx, ry, rw, rh);
+    ctx.setLineDash([]);
   }
 
   private drawPlayCursor(ctx: CanvasRenderingContext2D, tX: (ms: number) => number): void {

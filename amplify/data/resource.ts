@@ -47,6 +47,7 @@ const schema = a.schema({
       description:     a.string(),
       mp3File:         a.string(),
       mp3DurationMs:   a.integer(),
+      volume:          a.integer(),  // 0-100, null = 100 (défaut)
       servoPointsJson: a.string(),   // JSON.stringify(ServoPoint[])
       theme:           a.belongsTo('ChoreographyTheme', 'themeId'),
     })

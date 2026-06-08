@@ -5,7 +5,10 @@ export function toErlang(c: Choreography): string {
   const events: Array<{ timeMs: number; tok: string }> = [];
   let cursor = 0;
 
-  if (c.mp3File) events.push({ timeMs: 0, tok: `{mp3, <<"${c.mp3File}">>}` });
+  if (c.mp3File) {
+    if (c.volume !== undefined && c.volume !== 100) events.push({ timeMs: 0, tok: `{volume, ${c.volume}}` });
+    events.push({ timeMs: 0, tok: `{mp3, <<"${c.mp3File}">>}` });
+  }
 
   for (const sp of [...c.servoPoints].sort((a, b) => a.timeMs - b.timeMs)) {
     events.push({
