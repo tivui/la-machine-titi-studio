@@ -4,6 +4,7 @@ import { data } from './data/resource';
 import { storage } from './storage/resource';
 import { triggerBuild } from './functions/trigger-build/resource';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
+import { CfnTable } from 'aws-cdk-lib/aws-dynamodb';
 
 const backend = defineBackend({ auth, data, storage, triggerBuild });
 
@@ -21,6 +22,22 @@ cfnBucket.addPropertyOverride('CorsConfiguration', {
     },
   ],
 });
+
+// ── Protection des données en production ──────────────────────────────────────
+// AWS_BRANCH est défini par Amplify Hosting en CI/CD, absent en sandbox local.
+const isSandbox = !process.env['AWS_BRANCH'];
+
+if (!isSandbox) {
+  const tables = backend.data.resources.tables;
+  Object.values(tables).forEach((table) => {
+    const cfnTable = table.node.defaultChild as CfnTable | undefined;
+    if (!cfnTable) return;
+    // Point-in-Time Recovery : restauration possible jusqu'à 35 jours en arrière
+    cfnTable.pointInTimeRecoverySpecification = { pointInTimeRecoveryEnabled: true };
+    // Deletion protection : empêche la suppression accidentelle de la table
+    cfnTable.deletionProtectionEnabled = true;
+  });
+}
 
 // ── Lambda triggerBuild — endpoint AppSync ────────────────────────────────────
 // Les interfaces IFunction / IGraphqlApi n'exposent pas addEnvironment / graphqlUrl —

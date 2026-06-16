@@ -17,9 +17,12 @@ interface TriggerBuildResult {
   workflowUrl: string;
 }
 
-const GITHUB_REPO  = 'tivui/la-machine-titi';
+const GITHUB_REPO   = 'tivui/la-machine-titi';
 const WORKFLOW_FILE = 'build-custom.yaml';
 const WORKFLOW_REF  = 'custom/mes_sons';
+
+// AWS_BRANCH is set by Amplify Hosting CI/CD — absent during local sandbox.
+const GITHUB_ENV = process.env['AWS_BRANCH'] ? 'production' : 'sandbox';
 
 export const handler: AppSyncResolverHandler<TriggerBuildArgs, TriggerBuildResult> = async (event) => {
   const { themeId, themeName, choreographiesB64 } = event.arguments;
@@ -64,6 +67,7 @@ export const handler: AppSyncResolverHandler<TriggerBuildArgs, TriggerBuildResul
         theme_name:         themeName,
         choreographies_b64: choreographiesB64,
         build_job_id:       buildJobId,
+        environment:        GITHUB_ENV,
       },
     }),
   });

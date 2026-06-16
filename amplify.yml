@@ -1,0 +1,27 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        # Node 22.x requis pour Angular 20 + Lambda runtime 22
+        - nvm install 22
+        - nvm use 22
+        - npm install
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npx ng version
+    build:
+      commands:
+        - npx ng build --configuration=production
+  artifacts:
+    baseDirectory: dist/la-machine-studio/browser
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .npm/**/*
+      - node_modules/**/*
