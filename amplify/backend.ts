@@ -4,7 +4,7 @@ import { data } from './data/resource';
 import { storage } from './storage/resource';
 import { triggerBuild } from './functions/trigger-build/resource';
 import { CfnBucket } from 'aws-cdk-lib/aws-s3';
-import { CfnTable } from 'aws-cdk-lib/aws-dynamodb';
+import { CfnTable, Table } from 'aws-cdk-lib/aws-dynamodb';
 
 const backend = defineBackend({ auth, data, storage, triggerBuild });
 
@@ -28,7 +28,7 @@ cfnBucket.addPropertyOverride('CorsConfiguration', {
 const isSandbox = !process.env['AWS_BRANCH'];
 
 if (!isSandbox) {
-  const tables = backend.data.resources.tables;
+  const tables = backend.data.resources.tables as Record<string, Table>;
   Object.values(tables).forEach((table) => {
     const cfnTable = table.node.defaultChild as CfnTable | undefined;
     if (!cfnTable) return;
