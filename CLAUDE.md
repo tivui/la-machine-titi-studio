@@ -650,3 +650,136 @@ Invoke-RestMethod -Uri $endpoint -Method POST `
 - AppSync endpoint + API key : dans `amplify_outputs.json`
 - AWS credentials : dans `~/.aws/credentials` (profil `default`)
 - GitHub PAT (`GITHUB_TOKEN`) : dans KeePass, scopes `repo` + `workflow`
+
+---
+
+## Déploiement Amplify Hosting (production)
+
+### Prérequis `package.json`
+
+Les packages suivants doivent être dans `devDependencies` — absents = build CI échoue avec `TS2307 Cannot find module '@aws-amplify/backend'` :
+
+```json
+"@aws-amplify/backend": "^1.5.1",
+"aws-cdk-lib": "^2.137.0",
+"constructs": "^10.3.0",
+"@types/aws-lambda": "^8.10.152"
+```
+
+Sans eux, `npm install` en sandbox les installe via les dépendances transitives de `@aws-amplify/backend-cli`, mais le compilateur TypeScript de `ampx pipeline-deploy` ne les trouve pas en CI.
+
+### Fix TypeScript `Object.values(tables)` → `unknown`
+
+Dans `amplify/backend.ts`, typer explicitement le résultat pour éviter `TS18046` :
+
+```typescript
+import { CfnTable, Table } from 'aws-cdk-lib/aws-dynamodb';
+// ...
+const tables = backend.data.resources.tables as Record<string, Table>;
+Object.values(tables).forEach((table) => {
+  const cfnTable = table.node.defaultChild as CfnTable | undefined;
+  // ...
+});
+```
+
+### Connexion GitHub → Amplify (CLI)
+
+```powershell
+# Créer l'app Amplify connectée au repo GitHub via PAT
+$APP_ID = (aws amplify create-app `
+  --name "la-machine-studio" `
+  --repository "https://github.com/tivui/la-machine-titi-studio" `
+  --access-token "ghp_xxx" `
+  --platform WEB `
+  --query "app.appId" --output text)
+
+# Connecter la branche main avec auto-deploy
+aws amplify create-branch --app-id $APP_ID --branch-name main --enable-auto-build
+
+# Déclencher le premier build
+aws amplify start-job --app-id $APP_ID --branch-name main --job-type RELEASE
+```
+
+### CDK Bootstrap cross-account (obligatoire, une seule fois)
+
+Amplify Hosting Gen 2 fait tourner ses builds dans un compte AWS interne (ex: `693207358157`) différent du compte client (`846676442329`). Le CDK bootstrap doit être fait dans le **compte client** en faisant confiance au **rôle CodeBuild d'Amplify**.
+
+Trouver le rôle CodeBuild dans les logs du build échoué :
+```
+AccessDeniedException: User: arn:aws:sts::<AMPLIFY_ACCOUNT>:assumed-role/AemiliaControlPlaneLambda-CodeBuildRole-XXXX
+```
+
+Puis bootstrapper :
+```powershell
+npx aws-cdk@2 bootstrap aws://<COMPTE_CLIENT>/eu-west-3 `
+  --trust arn:aws:iam::<AMPLIFY_ACCOUNT>:role/AemiliaControlPlaneLambda-CodeBuildRole-XXXX `
+  --cloudformation-execution-policies arn:aws:iam::aws:policy/AdministratorAccess
+```
+
+**Piège :** ne pas mettre le compte client dans le `--trust` (le rôle n'existe pas dans ce compte → IAM 400 Invalid principal).
+
+### Service role Amplify (obligatoire)
+
+Sans service role, `ampx pipeline-deploy` ne peut pas accéder aux ressources CDK depuis le contexte Amplify. Assigner un rôle avec `AmplifyBackendDeployFullAccess` :
+
+```powershell
+# Réutiliser le service role existant (créé automatiquement par un autre app Amplify)
+aws amplify update-app `
+  --app-id $APP_ID `
+  --iam-service-role-arn arn:aws:iam::<COMPTE_CLIENT>:role/service-role/AmplifySSRLoggingRole-xxx
+
+# Ou créer un rôle dédié :
+aws iam create-role --role-name AmplifyServiceRole `
+  --assume-role-policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"Service":"amplify.amazonaws.com"},"Action":"sts:AssumeRole"}]}'
+aws iam attach-role-policy --role-name AmplifyServiceRole `
+  --policy-arn arn:aws:iam::aws:policy/service-role/AmplifyBackendDeployFullAccess
+aws amplify update-app --app-id $APP_ID `
+  --iam-service-role-arn arn:aws:iam::<COMPTE_CLIENT>:role/AmplifyServiceRole
+```
+
+**Symptôme si absent :** build échoue avec `BootstrapDetectionError` même après CDK bootstrap correct.
+
+### Secrets Lambda post-déploiement
+
+```powershell
+npx ampx secret set GITHUB_TOKEN --branch main --app-id $APP_ID
+npx ampx secret set AMPLIFY_API_KEY --branch main --app-id $APP_ID
+# AMPLIFY_API_KEY = clé API AppSync production (dans amplify_outputs.json après deploy)
+```
+
+### Récupérer les outputs production
+
+```powershell
+npx ampx generate outputs --branch main --app-id $APP_ID
+# → écrit amplify_outputs.json avec les valeurs production
+# Clés utiles : .data.url, .data.api_key, .storage.bucket_name
+```
+
+### GitHub Environments (sandbox / production)
+
+```bash
+# Créer les environments
+gh api repos/tivui/la-machine-titi/environments/production --method PUT
+gh api repos/tivui/la-machine-titi/environments/sandbox --method PUT
+
+# Secrets production (valeurs de amplify_outputs.json production)
+gh secret set AMPLIFY_API_ENDPOINT --env production --repo tivui/la-machine-titi --body "https://xxx.appsync-api.eu-west-3.amazonaws.com/graphql"
+gh secret set AMPLIFY_API_KEY      --env production --repo tivui/la-machine-titi --body "da2-xxx"
+gh secret set S3_BUCKET            --env production --repo tivui/la-machine-titi --body "amplify-xxx-bucket"
+
+# Secrets sandbox (valeurs de amplify_outputs.json sandbox local)
+gh secret set AMPLIFY_API_ENDPOINT --env sandbox --repo tivui/la-machine-titi --body "https://xxx-sandbox.appsync-api.eu-west-3.amazonaws.com/graphql"
+gh secret set AMPLIFY_API_KEY      --env sandbox --repo tivui/la-machine-titi --body "da2-xxx-sandbox"
+gh secret set S3_BUCKET            --env sandbox --repo tivui/la-machine-titi --body "amplify-xxx-sandbox-bucket"
+```
+
+Les secrets repo-level (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`) restent partagés entre les deux environments.
+
+### Ordre de résolution des erreurs fréquentes
+
+| Erreur | Cause | Fix |
+|---|---|---|
+| `TS2307 Cannot find module '@aws-amplify/backend'` | Packages manquants dans `package.json` | Ajouter `@aws-amplify/backend`, `aws-cdk-lib`, `constructs` en devDependencies |
+| `BootstrapDetectionError` / `AccessDeniedException ssm:GetParameter` | CDK bootstrap non configuré pour Amplify | `npx aws-cdk@2 bootstrap` avec `--trust <rôle Amplify>` |
+| `BootstrapDetectionError` persiste après bootstrap | Service role Amplify absent | `aws amplify update-app --iam-service-role-arn` avec rôle `AmplifyBackendDeployFullAccess` |
+| `Invalid principal in policy` lors du bootstrap | Mauvais compte dans `--trust` (rôle CodeBuild = compte Amplify, pas compte client) | Utiliser l'ARN exact du rôle depuis les logs du build |
