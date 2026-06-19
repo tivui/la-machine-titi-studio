@@ -545,6 +545,44 @@ S'applique à tous les petits boutons icône à taille fixe : `.theme-img-btn`, 
 
 ---
 
+## Images de thème (✅ implémenté)
+
+Chaque `ChoreographyTheme` peut avoir une photo de couverture à la place de son emoji.
+
+### Flux upload (Éditeur)
+
+```
+Bouton add_photo_alternate (sidebar thème)
+  → triggerThemeImageUpload() → themeImageRef.nativeElement.click()
+  → onThemeImageSelected() :
+      resizeImage(file, 512)           // Canvas 2D → JPEG blob ≤ 512×512
+      uploadData({ path: 'themes/{themeId}/cover.jpg', data: blob })
+      getUrl({ path }) → selectedThemeImageUrl.set(url)   // preview immédiat
+      svc.updateThemeImage(themeId, s3Key)                 // persist DynamoDB
+```
+
+Signaux concernés :
+- `uploadingThemeImage = signal(false)` — spinner bouton
+- `selectedThemeImageUrl = signal<string | null>(null)` — preview sidebar
+
+### Affichage (Library)
+
+```typescript
+themeImageUrls = signal<Map<string, string>>(new Map());
+// effect() → loadThemeImageUrls() → getUrl() pour chaque thème avec imageS3Key
+```
+
+Template : `@if (themeImageUrls().get(theme.id); as imgUrl)` → `<img>`, sinon emoji.
+
+### Règles
+
+- Chemin S3 fixe : `themes/{themeId}/cover.jpg`
+- Resize obligatoire côté client avant upload (max 512×512, format JPEG)
+- Désactivé pour les thèmes `isBuiltIn: true`
+- Fallback emoji toujours présent si pas d'image
+
+---
+
 ## Auto-save
 
 Toute modification de chorégraphie passe par `patchCurrent()` :
